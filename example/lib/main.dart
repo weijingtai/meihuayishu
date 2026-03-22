@@ -496,9 +496,9 @@ class _HomePageState extends State<HomePage>
                           color: Colors.grey.shade600,
                         ),
                       ),
-                      // 拼音带音标和声调编号
+                      // 拼音带音标和声调编号：lǚ [3]
                       Text(
-                        '${analysis.pinyinWithTone}${analysis.modernTone}',
+                        '${analysis.pinyinWithTone} [${analysis.modernTone}]',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade700,
