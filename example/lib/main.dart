@@ -638,49 +638,52 @@ class _HomePageState extends State<HomePage>
     final upperBinary = service.getGuaBinary(gua.upperGua);
     final lowerBinary = service.getGuaBinary(gua.lowerGua);
 
-    return Column(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.deepPurple,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          gua.fullName,
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        // 显示五行属性（彩色模式）
-        if (themeConfig.mode == YaoColorMode.colorful)
+    return HoverableContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        children: [
           Text(
-            '${WuXing.fromGuaName(gua.upperGuaName).name}·${WuXing.fromGuaName(gua.lowerGuaName).name}',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.deepPurple,
+            ),
           ),
-        const SizedBox(height: 8),
-        // 上卦
-        _buildThreeYao(
-          upperBinary,
-          gua.upperGuaName,
-          showChangingIndicator ? gua.changingYao : -1, // 不显示变爻指示器
-          startOffset: 3,
-          themeConfig: themeConfig,
-          indicator: indicator,
-        ),
-        const SizedBox(height: 8),
-        // 下卦
-        _buildThreeYao(
-          lowerBinary,
-          gua.lowerGuaName,
-          showChangingIndicator ? gua.changingYao : -1, // 不显示变爻指示器
-          startOffset: 0,
-          themeConfig: themeConfig,
-          indicator: indicator,
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            gua.fullName,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          // 显示五行属性（彩色模式）
+          if (themeConfig.mode == YaoColorMode.colorful)
+            Text(
+              '${WuXing.fromGuaName(gua.upperGuaName).name}·${WuXing.fromGuaName(gua.lowerGuaName).name}',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          const SizedBox(height: 8),
+          // 上卦（三爻）
+          _buildThreeYao(
+            upperBinary,
+            gua.upperGuaName,
+            showChangingIndicator ? gua.changingYao : -1,
+            startOffset: 3,
+            themeConfig: themeConfig,
+            indicator: indicator,
+          ),
+          const SizedBox(height: 4),
+          // 下卦（三爻）
+          _buildThreeYao(
+            lowerBinary,
+            gua.lowerGuaName,
+            showChangingIndicator ? gua.changingYao : -1,
+            startOffset: 0,
+            themeConfig: themeConfig,
+            indicator: indicator,
+          ),
+        ],
+      ),
     );
   }
 
@@ -695,38 +698,42 @@ class _HomePageState extends State<HomePage>
   }) {
     final yaoList = binary.split('').reversed.toList(); // 从上往下
 
-    return Column(
-      children: List.generate(3, (index) {
-        final isYang = yaoList[index] == '1';
-        final yaoPosition = startOffset + (2 - index) + 1; // 1-6
-        final isChanging = changingYao > 0 && yaoPosition == changingYao;
+    return HoverableContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      borderRadius: BorderRadius.circular(8),
+      child: Column(
+        children: List.generate(3, (index) {
+          final isYang = yaoList[index] == '1';
+          final yaoPosition = startOffset + (2 - index) + 1; // 1-6
+          final isChanging = changingYao > 0 && yaoPosition == changingYao;
 
-        // 根据主题模式获取颜色
-        Color color;
-        switch (themeConfig.mode) {
-          case YaoColorMode.solid:
-            color = themeConfig.solidColor;
-            break;
-          case YaoColorMode.bw:
-          case YaoColorMode.yinyang:
-            color = isYang ? themeConfig.yangColor : themeConfig.yinColor;
-            break;
-          case YaoColorMode.colorful:
-            final wuxing = WuXing.fromGuaName(guaName);
-            color = themeConfig.wuXingColors[wuxing] ?? wuxing.defaultColor;
-            break;
-        }
+          // 根据主题模式获取颜色
+          Color color;
+          switch (themeConfig.mode) {
+            case YaoColorMode.solid:
+              color = themeConfig.solidColor;
+              break;
+            case YaoColorMode.bw:
+            case YaoColorMode.yinyang:
+              color = isYang ? themeConfig.yangColor : themeConfig.yinColor;
+              break;
+            case YaoColorMode.colorful:
+              final wuxing = WuXing.fromGuaName(guaName);
+              color = themeConfig.wuXingColors[wuxing] ?? wuxing.defaultColor;
+              break;
+          }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: _buildSingleYao(
-            isYang: isYang,
-            color: color,
-            isChanging: isChanging,
-            indicator: indicator,
-          ),
-        );
-      }),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: _buildSingleYao(
+              isYang: isYang,
+              color: color,
+              isChanging: isChanging,
+              indicator: indicator,
+            ),
+          );
+        }),
+      ),
     );
   }
 
@@ -887,5 +894,55 @@ class _HomePageState extends State<HomePage>
         changingYao: _selectedYao!,
       );
     });
+  }
+}
+
+/// 可 hover 的容器组件
+class HoverableContainer extends StatefulWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final BorderRadius? borderRadius;
+
+  const HoverableContainer({
+    super.key,
+    required this.child,
+    this.padding,
+    this.borderRadius,
+  });
+
+  @override
+  State<HoverableContainer> createState() => _HoverableContainerState();
+}
+
+class _HoverableContainerState extends State<HoverableContainer> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: widget.padding ?? const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _isHovered ? Colors.white : Colors.transparent,
+          borderRadius: widget.borderRadius ?? BorderRadius.circular(12),
+          border: _isHovered
+              ? Border.all(color: Colors.deepPurple.shade200, width: 1)
+              : Border.all(color: Colors.transparent, width: 1),
+          boxShadow: _isHovered
+              ? [
+                  BoxShadow(
+                    color: Colors.deepPurple.withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: widget.child,
+      ),
+    );
   }
 }
