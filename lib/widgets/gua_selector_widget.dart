@@ -127,6 +127,7 @@ class GuaSelectorWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.transparent, width: 2),
         ),
         child: const Center(
           child: Text(
@@ -147,7 +148,7 @@ class GuaSelectorWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? Colors.blue : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
+            width: 2, // 固定2px边框，避免选中时溢出
           ),
         ),
         child: Column(
@@ -194,7 +195,7 @@ class GuaSelectorWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? Colors.blue : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
+            width: 2, // 固定2px边框
           ),
         ),
         child: Column(
