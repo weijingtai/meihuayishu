@@ -666,6 +666,7 @@ class _HomePageState extends State<HomePage>
           GuaSelectorWidget(
             title: '选择上卦',
             selectedGua: _selectedUpperGua,
+            isXianTian: _isXianTianGua,
             onGuaSelected: (guaNum) {
               setState(() {
                 _selectedUpperGua = guaNum;
@@ -680,6 +681,7 @@ class _HomePageState extends State<HomePage>
           GuaSelectorWidget(
             title: '选择下卦',
             selectedGua: _selectedLowerGua,
+            isXianTian: _isXianTianGua,
             onGuaSelected: (guaNum) {
               setState(() {
                 _selectedLowerGua = guaNum;
