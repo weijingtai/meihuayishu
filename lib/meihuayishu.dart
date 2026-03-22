@@ -10,11 +10,14 @@ export 'models/yao_color_mode.dart';
 export 'models/yao_theme_config.dart';
 export 'models/divination_result.dart';
 export 'models/divination_method.dart';
+export 'models/text_divination_method.dart';
+export 'models/character_analysis.dart';
 export 'pages/theme_edit_page.dart';
 export 'widgets/settings_button.dart';
 export 'widgets/gua_selector_widget.dart';
 export 'widgets/yao_selector_widget.dart';
 export 'services/meihua_service.dart';
+export 'services/text_divination_calculator.dart';
 
 class MeiHuaYiShuModule {
   static final Logger _logger = Logger();

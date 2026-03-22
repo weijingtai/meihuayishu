@@ -50,6 +50,7 @@ class _HomePageState extends State<HomePage>
 
   // 文字起卦状态
   String _inputText = '';
+  TextDivinationMethod _selectedTextMethod = TextDivinationMethod.byStroke;
 
   @override
   void initState() {
@@ -314,6 +315,20 @@ class _HomePageState extends State<HomePage>
 
   /// 文字起卦Tab
   Widget _buildTextTab() {
+    final calculator = TextDivinationCalculator();
+    final isLongText = _inputText.length > 10;
+
+    // 可用的起卦方法
+    final availableMethods = isLongText
+        ? [TextDivinationMethod.byCharCount]
+        : TextDivinationMethod.values;
+
+    // 分析文本
+    TextAnalysisSummary? summary;
+    if (_inputText.isNotEmpty) {
+      summary = calculator.analyzeText(_inputText);
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -337,7 +352,7 @@ class _HomePageState extends State<HomePage>
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    '输入文字，根据笔画数起卦\n适用于测字、姓名、成语等',
+                    '输入文字，选择起卦方式\n适用于测字、姓名、成语等',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey),
                   ),
@@ -355,50 +370,200 @@ class _HomePageState extends State<HomePage>
                       setState(() => _inputText = value);
                     },
                   ),
-                  if (_inputText.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _inputText.split('').map((char) {
-                        return Chip(
-                          avatar: CircleAvatar(
-                            backgroundColor: Colors.deepPurple,
-                            child: Text(
-                              char,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          label: Text(char),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _inputText.isNotEmpty
-                          ? _generateGuaByText
-                          : null,
-                      icon: const Icon(Icons.auto_awesome),
-                      label: const Text('起卦'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
+
+          // 起卦方式选择
+          if (_inputText.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '起卦方式',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (isLongText)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          '（长文本仅支持按字数起卦）',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    ...availableMethods.map((method) {
+                      return RadioListTile<TextDivinationMethod>(
+                        title: Text(method.displayName),
+                        subtitle: Text(
+                          method.description,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        value: method,
+                        groupValue: _selectedTextMethod,
+                        onChanged: (value) {
+                          setState(() => _selectedTextMethod = value!);
+                        },
+                        dense: true,
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          // 字符分析卡片
+          if (summary != null && !isLongText) ...[
+            const SizedBox(height: 16),
+            _buildCharacterAnalysisCard(summary),
+          ],
+
+          // 起卦按钮
+          if (_inputText.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () =>
+                    _generateGuaByTextWithMethod(_selectedTextMethod),
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('起卦'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 24),
           if (_result != null) _buildResultSection(),
         ],
       ),
+    );
+  }
+
+  /// 构建字符分析卡片
+  Widget _buildCharacterAnalysisCard(TextAnalysisSummary summary) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '字符分析',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            // 字符展示
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: summary.characters.map((analysis) {
+                return Container(
+                  width: 70,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        analysis.character,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${analysis.strokeCount}画',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      Text(
+                        '${analysis.pinyin} ${analysis.toneDisplay}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: analysis.isPing
+                              ? Colors.blue.shade100
+                              : Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          analysis.pingZeDisplay,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: analysis.isPing
+                                ? Colors.blue.shade700
+                                : Colors.orange.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+
+            // 统计信息
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem('总笔画', '${summary.totalStrokes}'),
+                _buildStatItem('平声', '${summary.pingCount}声'),
+                _buildStatItem('仄声', '${summary.zeCount}声'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.deepPurple,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+        ),
+      ],
     );
   }
 
@@ -871,16 +1036,11 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  void _generateGuaByText() {
+  void _generateGuaByTextWithMethod(TextDivinationMethod method) {
     if (_inputText.isEmpty) return;
-    // 简单的笔画映示例（实际应用需要完整笔画库）
-    final strokes = _inputText
-        .split('')
-        .map((char) => char.codeUnitAt(0) % 10 + 1)
-        .toList();
-    final service = context.read<MeiHuaService>();
+    final calculator = TextDivinationCalculator();
     setState(() {
-      _result = service.xianTianDivination(strokes);
+      _result = calculator.calculate(_inputText, method);
     });
   }
 
