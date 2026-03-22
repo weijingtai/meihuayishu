@@ -44,6 +44,7 @@ class _HomePageState extends State<HomePage>
   int? _selectedUpperGua;
   int? _selectedLowerGua;
   int? _selectedYao;
+  bool _isXianTianGua = true; // true=先天卦, false=后天卦
 
   // 报数起卦状态
   String _inputNumber = '';
@@ -569,11 +570,21 @@ class _HomePageState extends State<HomePage>
 
   /// 手动起卦Tab
   Widget _buildManualTab() {
+    final upperGuaName = _selectedUpperGua != null
+        ? _getGuaName(_selectedUpperGua!)
+        : null;
+    final lowerGuaName = _selectedLowerGua != null
+        ? _getGuaName(_selectedLowerGua!)
+        : null;
+    final isGuaComplete =
+        _selectedUpperGua != null && _selectedLowerGua != null;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // 标题卡片
           Card(
             elevation: 4,
             child: Padding(
@@ -600,31 +611,88 @@ class _HomePageState extends State<HomePage>
               ),
             ),
           ),
+
           const SizedBox(height: 16),
+
+          // 先天/后天卦切换
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isXianTianGua ? '先天卦' : '后天卦',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        _isXianTianGua ? '乾1兑2离3震4巽5坎6艮7坤8' : '离南坎北震东兑西',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Switch(
+                    value: _isXianTianGua,
+                    onChanged: (value) {
+                      setState(() {
+                        _isXianTianGua = value;
+                        // 切换模式时重置选择
+                        _selectedUpperGua = null;
+                        _selectedLowerGua = null;
+                        _selectedYao = null;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 上卦选择
           GuaSelectorWidget(
             title: '选择上卦',
             selectedGua: _selectedUpperGua,
             onGuaSelected: (guaNum) {
-              setState(() => _selectedUpperGua = guaNum);
+              setState(() {
+                _selectedUpperGua = guaNum;
+                _selectedYao = null; // 重置动爻选择
+              });
             },
           ),
+
           const SizedBox(height: 16),
+
+          // 下卦选择
           GuaSelectorWidget(
             title: '选择下卦',
             selectedGua: _selectedLowerGua,
             onGuaSelected: (guaNum) {
-              setState(() => _selectedLowerGua = guaNum);
+              setState(() {
+                _selectedLowerGua = guaNum;
+                _selectedYao = null; // 重置动爻选择
+              });
             },
           ),
+
           const SizedBox(height: 16),
-          YaoSelectorWidget(
-            title: '选择动爻',
-            selectedYao: _selectedYao,
-            onYaoSelected: (yao) {
-              setState(() => _selectedYao = yao);
-            },
-          ),
+
+          // 动爻选择（显示真实爻）
+          _buildYaoSelector(upperGuaName, lowerGuaName, isGuaComplete),
+
           const SizedBox(height: 24),
+
+          // 起卦按钮
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -636,11 +704,219 @@ class _HomePageState extends State<HomePage>
               ),
             ),
           ),
+
           const SizedBox(height: 24),
           if (_result != null) _buildResultSection(),
         ],
       ),
     );
+  }
+
+  /// 获取卦名
+  String _getGuaName(int guaNum) {
+    const names = ['乾', '兑', '离', '震', '巽', '坎', '艮', '坤'];
+    return names[(guaNum - 1) % 8];
+  }
+
+  /// 获取卦的二进制表示
+  String _getGuaBinary(int guaNum) {
+    const binaries = ['111', '110', '101', '100', '011', '010', '001', '000'];
+    return binaries[(guaNum - 1) % 8];
+  }
+
+  /// 构建动爻选择器（显示真实爻）
+  Widget _buildYaoSelector(
+    String? upperGuaName,
+    String? lowerGuaName,
+    bool isGuaComplete,
+  ) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  '选择动爻',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                if (!isGuaComplete) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '请先选择上下卦',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            if (!isGuaComplete)
+              // 未完成上下卦选择时显示占位
+              Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: const Center(
+                  child: Text(
+                    '请先选择上卦和下卦',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              // 显示真实六爻
+              _buildRealYaoDisplay(upperGuaName!, lowerGuaName!),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建真实六爻显示
+  Widget _buildRealYaoDisplay(String upperGuaName, String lowerGuaName) {
+    final upperBinary = _getGuaBinary(_selectedUpperGua!);
+    final lowerBinary = _getGuaBinary(_selectedLowerGua!);
+
+    // 完整六爻（从下往上）
+    final fullBinary = lowerBinary + upperBinary;
+    final yaoList = fullBinary.split('');
+
+    return Column(
+      children: [
+        // 上卦名称
+        Text(
+          '上卦: $upperGuaName',
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+
+        // 上卦三爻（从上往下显示：6、5、4爻）
+        ...List.generate(3, (index) {
+          final yaoPosition = 6 - index; // 6, 5, 4
+          final yaoIndex = 5 - index; // 数组索引
+          final isYang = yaoList[yaoIndex] == '1';
+          final isSelected = _selectedYao == yaoPosition;
+
+          return _buildYaoButton(yaoPosition, isYang, isSelected);
+        }),
+
+        const SizedBox(height: 8),
+        const Divider(),
+        const SizedBox(height: 8),
+
+        // 下卦三爻（从上往下显示：3、2、1爻）
+        ...List.generate(3, (index) {
+          final yaoPosition = 3 - index; // 3, 2, 1
+          final yaoIndex = 2 - index; // 数组索引
+          final isYang = yaoList[yaoIndex] == '1';
+          final isSelected = _selectedYao == yaoPosition;
+
+          return _buildYaoButton(yaoPosition, isYang, isSelected);
+        }),
+
+        const SizedBox(height: 8),
+
+        // 下卦名称
+        Text(
+          '下卦: $lowerGuaName',
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ],
+    );
+  }
+
+  /// 构建单个爻按钮
+  Widget _buildYaoButton(int yaoPosition, bool isYang, bool isSelected) {
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedYao = yaoPosition);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.deepPurple.shade100 : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? Colors.deepPurple : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '第$yaoPosition爻',
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.deepPurple : Colors.black87,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // 显示爻的形状
+            _buildYaoShape(isYang),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建爻的形状
+  Widget _buildYaoShape(bool isYang) {
+    if (isYang) {
+      // 阳爻：实线
+      return Container(
+        width: 40,
+        height: 6,
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(3),
+        ),
+      );
+    } else {
+      // 阴爻：断线
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 16,
+            height: 6,
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 16,
+            height: 6,
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   bool get _canGenerateManual =>
