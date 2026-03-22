@@ -17,14 +17,15 @@ class TextDivinationCalculator {
     final chars = text.split('');
     final analyses = chars.map((char) {
       final stroke = _strokeService.getStrokeCount(char);
-      final pinyinResult = _toneService.getPinyin(char);
+      final pinyinInfo = _toneService.getFullPinyinInfo(char);
 
       return CharacterAnalysis(
         character: char,
         strokeCount: stroke > 0 ? stroke : 1, // 默认1画
-        modernTone: pinyinResult.tone > 0 ? pinyinResult.tone : 1, // 默认1声
-        pinyin: pinyinResult.pinyin,
-        isPing: pinyinResult.tone == 1 || pinyinResult.tone == 2,
+        modernTone: pinyinInfo.tone > 0 ? pinyinInfo.tone : 1, // 默认1声
+        pinyinWithTone: pinyinInfo.pinyinWithTone,
+        pinyinWithoutTone: pinyinInfo.pinyinWithoutTone,
+        isPing: pinyinInfo.tone == 1 || pinyinInfo.tone == 2,
       );
     }).toList();
 

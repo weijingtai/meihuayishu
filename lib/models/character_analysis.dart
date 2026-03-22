@@ -9,8 +9,11 @@ class CharacterAnalysis {
   /// 现代四声 (1-4)
   final int modernTone;
 
-  /// 拼音
-  final String pinyin;
+  /// 拼音（带音标）如：lǚ, mā, má
+  final String pinyinWithTone;
+
+  /// 拼音（无声调）如：lu, ma
+  final String pinyinWithoutTone;
 
   /// 是否平声（1、2声为平，3、4声为仄）
   final bool isPing;
@@ -30,11 +33,15 @@ class CharacterAnalysis {
   /// 平仄显示文本
   String get pingZeDisplay => isPing ? '平' : '仄';
 
+  /// 拼音显示（带声调编号）
+  String get pinyinDisplay => '$pinyinWithTone$modernTone';
+
   const CharacterAnalysis({
     required this.character,
     required this.strokeCount,
     required this.modernTone,
-    required this.pinyin,
+    required this.pinyinWithTone,
+    required this.pinyinWithoutTone,
     required this.isPing,
   });
 

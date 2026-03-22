@@ -496,13 +496,16 @@ class _HomePageState extends State<HomePage>
                           color: Colors.grey.shade600,
                         ),
                       ),
+                      // 拼音带音标和声调编号
                       Text(
-                        '${analysis.pinyin} ${analysis.toneDisplay}',
+                        '${analysis.pinyinWithTone}${analysis.modernTone}',
                         style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey.shade500,
+                          fontSize: 11,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
+                      // 平仄标签
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,
@@ -515,7 +518,7 @@ class _HomePageState extends State<HomePage>
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          analysis.pingZeDisplay,
+                          '${analysis.pingZeDisplay}声',
                           style: TextStyle(
                             fontSize: 10,
                             color: analysis.isPing

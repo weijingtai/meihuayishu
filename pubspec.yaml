@@ -21,6 +21,7 @@ dependencies:
   json_annotation: ^4.10.0
   flutter_screenutil: ^5.9.3
   flutter_sliding_toast: ^1.5.3
+  lpinyin: ^2.0.3
   common:
     path: ../xuan-common
   persistence_core:

@@ -1,3 +1,4 @@
+import 'package:lpinyin/lpinyin.dart';
 import 'package:logger/logger.dart';
 
 /// 注音服务
@@ -5,287 +6,137 @@ import 'package:logger/logger.dart';
 class TextToneService {
   final Logger _logger = Logger();
 
-  /// 常用字拼音数据（拼音+声调数字）
-  /// 格式: '字': 'pin yin1' (拼音+声调)
-  static const Map<String, String> _pinyinData = {
-    '一': 'yi1',
-    '二': 'er4',
-    '三': 'san1',
-    '四': 'si4',
-    '五': 'wu3',
-    '六': 'liu4',
-    '七': 'qi1',
-    '八': 'ba1',
-    '九': 'jiu3',
-    '十': 'shi2',
-    '天': 'tian1',
-    '地': 'di4',
-    '人': 'ren2',
-    '日': 'ri4',
-    '月': 'yue4',
-    '金': 'jin1',
-    '木': 'mu4',
-    '水': 'shui3',
-    '火': 'huo3',
-    '土': 'tu3',
-    '乾': 'qian2',
-    '坤': 'kun1',
-    '震': 'zhen4',
-    '巽': 'xun4',
-    '坎': 'kan3',
-    '离': 'li2',
-    '艮': 'gen4',
-    '兑': 'dui4',
-    '甲': 'jia3',
-    '乙': 'yi3',
-    '丙': 'bing3',
-    '丁': 'ding1',
-    '戊': 'wu4',
-    '己': 'ji3',
-    '庚': 'geng1',
-    '辛': 'xin1',
-    '壬': 'ren2',
-    '癸': 'gui3',
-    '子': 'zi3',
-    '丑': 'chou3',
-    '寅': 'yin2',
-    '卯': 'mao3',
-    '辰': 'chen2',
-    '巳': 'si4',
-    '午': 'wu3',
-    '未': 'wei4',
-    '申': 'shen1',
-    '酉': 'you3',
-    '戌': 'xu1',
-    '亥': 'hai4',
-    '春': 'chun1',
-    '夏': 'xia4',
-    '秋': 'qiu1',
-    '冬': 'dong1',
-    '东': 'dong1',
-    '南': 'nan2',
-    '西': 'xi1',
-    '北': 'bei3',
-    '风': 'feng1',
-    '雨': 'yu3',
-    '雷': 'lei2',
-    '电': 'dian4',
-    '云': 'yun2',
-    '雪': 'xue3',
-    '山': 'shan1',
-    '川': 'chuan1',
-    '河': 'he2',
-    '海': 'hai3',
-    '江': 'jiang1',
-    '湖': 'hu2',
-    '龙': 'long2',
-    '凤': 'feng4',
-    '虎': 'hu3',
-    '龟': 'gui1',
-    '马': 'ma3',
-    '牛': 'niu2',
-    '羊': 'yang2',
-    '鸡': 'ji1',
-    '狗': 'gou3',
-    '猪': 'zhu1',
-    '鼠': 'shu3',
-    '兔': 'tu4',
-    '蛇': 'she2',
-    '猴': 'hou2',
-    '大': 'da4',
-    '小': 'xiao3',
-    '多': 'duo1',
-    '少': 'shao3',
-    '长': 'chang2',
-    '短': 'duan3',
-    '高': 'gao1',
-    '低': 'di1',
-    '上': 'shang4',
-    '下': 'xia4',
-    '左': 'zuo3',
-    '右': 'you4',
-    '前': 'qian2',
-    '后': 'hou4',
-    '中': 'zhong1',
-    '内': 'nei4',
-    '外': 'wai4',
-    '生': 'sheng1',
-    '死': 'si3',
-    '老': 'lao3',
-    '幼': 'you4',
-    '好': 'hao3',
-    '坏': 'huai4',
-    '吉': 'ji2',
-    '凶': 'xiong1',
-    '福': 'fu2',
-    '禄': 'lu4',
-    '寿': 'shou4',
-    '喜': 'xi3',
-    '财': 'cai2',
-    '富': 'fu4',
-    '贵': 'gui4',
-    '贫': 'pin2',
-    '爱': 'ai4',
-    '恨': 'hen4',
-    '情': 'qing2',
-    '愁': 'chou2',
-    '家': 'jia1',
-    '国': 'guo2',
-    '父': 'fu4',
-    '母': 'mu3',
-    '兄': 'xiong1',
-    '弟': 'di4',
-    '姐': 'jie3',
-    '妹': 'mei4',
-    '男': 'nan2',
-    '女': 'nv3',
-    '儿': 'er2',
-    '孙': 'sun1',
-    '银': 'yin2',
-    '铜': 'tong2',
-    'tie3': 'tie3',
-    '花': 'hua1',
-    '草': 'cao3',
-    '树': 'shu4',
-    '叶': 'ye4',
-    '红': 'hong2',
-    '黄': 'huang2',
-    '蓝': 'lan2',
-    '白': 'bai2',
-    '黑': 'hei1',
-    '青': 'qing1',
-    '紫': 'zi3',
-    '绿': 'lv4',
-    '灰': 'hui1',
-    '来': 'lai2',
-    '去': 'qu4',
-    '出': 'chu1',
-    '入': 'ru4',
-    '进': 'jin4',
-    'tui4': 'tui4',
-    '开': 'kai1',
-    '关': 'guan1',
-    '有': 'you3',
-    '无': 'wu2',
-    '是': 'shi4',
-    '非': 'fei1',
-    '真': 'zhen1',
-    '假': 'jia3',
-    '新': 'xin1',
-    '旧': 'jiu4',
-    '快': 'kuai4',
-    '慢': 'man4',
-    '明': 'ming2',
-    '暗': 'an4',
-    '早': 'zao3',
-    '晚': 'wan3',
-    '阳': 'yang2',
-    '阴': 'yin1',
-    '行': 'xing2',
-    '健': 'jian4',
-    '君': 'jun1',
-    'zi3': 'zi3',
-    '以': 'yi3',
-    '自': 'zi4',
-    '强': 'qiang2',
-    '不': 'bu4',
-    '息': 'xi1',
-    '道': 'dao4',
-    '德': 'de2',
-    '仁': 'ren2',
-    '义': 'yi4',
-    '礼': 'li3',
-    '智': 'zhi4',
-    '信': 'xin4',
-    '心': 'xin1',
-    '性': 'xing4',
-    '命': 'ming4',
-    '运': 'yun4',
-    '气': 'qi4',
-    '血': 'xue4',
-    '经': 'jing1',
-    '脉': 'mai4',
-    '神': 'shen2',
-    '仙': 'xian1',
-    '佛': 'fo2',
-    '我': 'wo3',
-    '你': 'ni3',
-    '他': 'ta1',
-    '她': 'ta1',
-    '这': 'zhe4',
-    '那': 'na4',
-    '哪': 'na3',
-    '谁': 'shui2',
-    '什': 'shen2',
-    '么': 'me5',
-    '和': 'he2',
-    '与': 'yu3',
-    '及': 'ji2',
-    '或': 'huo4',
-    '在': 'zai4',
-    '到': 'dao4',
-    '从': 'cong2',
-    '向': 'xiang4',
-    '为': 'wei4',
-    '因': 'yin1',
-    '所': 'suo3',
-    '之': 'zhi1',
-    '而': 'er2',
-    '且': 'qie3',
-    '但': 'dan4',
-    '如': 'ru2',
-    '若': 'ruo4',
-    '虽': 'sui1',
-    '然': 'ran2',
-    '可': 'ke3',
-    '能': 'neng2',
-    '会': 'hui4',
-    '要': 'yao4',
-    '想': 'xiang3',
-    '知': 'zhi1',
-    '得': 'de2',
-    '看': 'kan4',
-    '听': 'ting1',
-    '说': 'shuo1',
-    '话': 'hua4',
-    '读': 'du2',
-    '写': 'xie3',
-    '学': 'xue2',
-    '习': 'xi2',
-    '问': 'wen4',
-    '答': 'da2',
-    '思': 'si1',
-    '考': 'kao3',
-  };
+  /// 获取字符的拼音（带音标）
+  /// 如：lǚ, mā, má, mǎ, mà
+  String getPinyinWithTone(String char) {
+    if (char.isEmpty) return '';
 
-  /// 获取字符的拼音和声调
-  ({String pinyin, int tone}) getPinyin(String char) {
-    final data = _pinyinData[char];
-    if (data == null) {
-      _logger.w('未找到字 "$char" 的拼音数据');
-      return (pinyin: '?', tone: 0);
+    // 检查是否是汉字
+    final code = char.codeUnitAt(0);
+    if (code < 0x4E00 || code > 0x9FFF) {
+      return char; // 非汉字直接返回
     }
 
-    // 解析拼音数据，如 "tian1"
-    final match = RegExp(r'([a-z]+)(\d)').firstMatch(data);
-    if (match != null) {
-      return (
-        pinyin: match.group(1)!,
-        tone: int.parse(match.group(2)!),
+    try {
+      return PinyinHelper.getPinyinE(
+        char,
+        separator: '',
+        defPinyin: char,
       );
+    } catch (e) {
+      _logger.w('获取拼音失败: $char, error: $e');
+      return char;
     }
-
-    return (pinyin: data, tone: 0);
   }
 
-  /// 获取字符的声调（1-4）
-  int getTone(String char) {
-    return getPinyin(char).tone;
+  /// 获取字符的拼音（无声调）
+  String getPinyinWithoutTone(String char) {
+    if (char.isEmpty) return '';
+
+    final code = char.codeUnitAt(0);
+    if (code < 0x4E00 || code > 0x9FFF) {
+      return char;
+    }
+
+    try {
+      return PinyinHelper.getPinyinE(
+        char,
+        separator: '',
+        format: PinyinFormat.WITHOUT_TONE,
+        defPinyin: char,
+      );
+    } catch (e) {
+      _logger.w('获取拼音失败: $char, error: $e');
+      return char;
+    }
+  }
+
+  /// 获取声调数字（1-4，0表示轻声）
+  int getToneNumber(String char) {
+    if (char.isEmpty) return 0;
+
+    final code = char.codeUnitAt(0);
+    if (code < 0x4E00 || code > 0x9FFF) {
+      return 0;
+    }
+
+    try {
+      final pinyin = PinyinHelper.getPinyinE(
+        char,
+        separator: '',
+        defPinyin: char,
+      );
+
+      return _extractToneFromPinyin(pinyin);
+    } catch (e) {
+      _logger.w('获取声调失败: $char, error: $e');
+      return 0;
+    }
+  }
+
+  /// 从带音标拼音中提取声调数字
+  int _extractToneFromPinyin(String pinyin) {
+    // 带音标的元音及其声调
+    const toneMap = {
+      'ā': 1,
+      'á': 2,
+      'ǎ': 3,
+      'à': 4,
+      'ē': 1,
+      'é': 2,
+      'ě': 3,
+      'è': 4,
+      'ī': 1,
+      'í': 2,
+      'ǐ': 3,
+      'ì': 4,
+      'ō': 1,
+      'ó': 2,
+      'ǒ': 3,
+      'ò': 4,
+      'ū': 1,
+      'ú': 2,
+      'ǔ': 3,
+      'ù': 4,
+      'ǖ': 1,
+      'ǘ': 2,
+      'ǚ': 3,
+      'ǜ': 4,
+      'ü': 0,
+      'Ā': 1,
+      'Á': 2,
+      'Ǎ': 3,
+      'À': 4,
+      'Ē': 1,
+      'É': 2,
+      'Ě': 3,
+      'È': 4,
+      'Ī': 1,
+      'Í': 2,
+      'Ǐ': 3,
+      'Ì': 4,
+      'Ō': 1,
+      'Ó': 2,
+      'Ǒ': 3,
+      'Ò': 4,
+      'Ū': 1,
+      'Ú': 2,
+      'Ǔ': 3,
+      'Ù': 4,
+    };
+
+    for (final char in pinyin.split('')) {
+      if (toneMap.containsKey(char)) {
+        return toneMap[char]!;
+      }
+    }
+
+    return 0; // 轻声或无声调
   }
 
   /// 判断是否平声（1、2声为平）
   bool isPingSheng(String char) {
-    final tone = getTone(char);
+    final tone = getToneNumber(char);
     return tone == 1 || tone == 2;
   }
 
@@ -294,17 +145,38 @@ class TextToneService {
     return isPingSheng(char) ? 1 : 2;
   }
 
+  /// 获取完整的拼音信息
+  ({
+    String char,
+    String pinyinWithTone,
+    String pinyinWithoutTone,
+    int tone,
+    bool isPing
+  }) getFullPinyinInfo(String char) {
+    final pinyinWithTone = getPinyinWithTone(char);
+    final pinyinWithoutTone = getPinyinWithoutTone(char);
+    final tone = getToneNumber(char);
+
+    return (
+      char: char,
+      pinyinWithTone: pinyinWithTone,
+      pinyinWithoutTone: pinyinWithoutTone,
+      tone: tone,
+      isPing: tone == 1 || tone == 2,
+    );
+  }
+
   /// 批量获取分析结果
-  List<({String char, String pinyin, int tone, bool isPing})> analyzeText(
-      String text) {
+  List<
+      ({
+        String char,
+        String pinyinWithTone,
+        String pinyinWithoutTone,
+        int tone,
+        bool isPing
+      })> analyzeText(String text) {
     return text.split('').map((char) {
-      final result = getPinyin(char);
-      return (
-        char: char,
-        pinyin: result.pinyin,
-        tone: result.tone,
-        isPing: result.tone == 1 || result.tone == 2,
-      );
+      return getFullPinyinInfo(char);
     }).toList();
   }
 }
