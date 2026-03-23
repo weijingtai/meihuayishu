@@ -98,24 +98,35 @@ class GuaSelectorWidget extends StatelessWidget {
       }
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (int row = 0; row < 3; row++)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (int col = 0; col < 3; col++) ...[
-                if (col > 0) const SizedBox(width: 6),
-                SizedBox(
-                  width: 70,
-                  height: 60,
-                  child: _buildGridCell(grid[row * 3 + col]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 计算每个格子的宽度（减去间距）
+        final cellWidth = (constraints.maxWidth - 12) / 3; // 2个6px间距
+        final cellHeight = cellWidth * 0.85; // 保持适当比例
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (int row = 0; row < 3; row++)
+              Padding(
+                padding: EdgeInsets.only(bottom: row < 2 ? 6 : 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (int col = 0; col < 3; col++) ...[
+                      if (col > 0) const SizedBox(width: 6),
+                      SizedBox(
+                        width: cellWidth,
+                        height: cellHeight,
+                        child: _buildGridCell(grid[row * 3 + col]),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
-          ),
-      ],
+              ),
+          ],
+        );
+      },
     );
   }
 
