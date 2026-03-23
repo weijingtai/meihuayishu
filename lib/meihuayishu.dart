@@ -12,6 +12,7 @@ export 'models/divination_result.dart';
 export 'models/divination_method.dart';
 export 'models/text_divination_method.dart';
 export 'models/character_analysis.dart';
+export 'models/gua.dart';
 export 'pages/theme_edit_page.dart';
 export 'widgets/settings_button.dart';
 export 'widgets/gua_selector_widget.dart';

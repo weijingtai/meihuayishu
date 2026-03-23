@@ -54,6 +54,8 @@ class _HomePageState extends State<HomePage>
   TextDivinationMethod _selectedTextMethod = TextDivinationMethod.byStroke;
   TextAnalysisSummary? _textAnalysisSummary;
   bool _isTextLoading = false;
+  // 用户修改的音调映射 (字符 -> 音调 1-4)
+  Map<String, int> _toneOverrides = {};
 
   @override
   void initState() {
@@ -367,6 +369,7 @@ class _HomePageState extends State<HomePage>
                       setState(() {
                         _inputText = value;
                         _isTextLoading = true;
+                        _toneOverrides = {}; // 重置音调修改
                       });
 
                       if (value.isNotEmpty) {
@@ -515,8 +518,14 @@ class _HomePageState extends State<HomePage>
               spacing: 8,
               runSpacing: 8,
               children: displayCharacters.map((analysis) {
+                // 获取用户修改后的音调，如果没有修改则使用原始音调
+                final currentTone =
+                    _toneOverrides[analysis.character] ?? analysis.modernTone;
+                // 判断平仄 (1-2声为平，3-4声为仄)
+                final isPing = currentTone == 1 || currentTone == 2;
+
                 return Container(
-                  width: 70,
+                  width: 80,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
@@ -540,23 +549,52 @@ class _HomePageState extends State<HomePage>
                           color: Colors.grey.shade600,
                         ),
                       ),
-                      // 拼音带声调标记：lǚ
-                      Text(
-                        analysis.pinyinWithTone,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      const SizedBox(height: 4),
+                      // 拼音和音调在同一行
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            analysis.pinyinWithTone,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          // 可点击的音调按钮
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                // 音调在 1-4 之间循环
+                                _toneOverrides[analysis.character] =
+                                    (currentTone % 4) + 1;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.blue.shade200),
+                              ),
+                              child: Text(
+                                '$currentTone',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue.shade700,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      // 声调编号
-                      Text(
-                        '${analysis.modernTone}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
+                      const SizedBox(height: 4),
                       // 平仄标签
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -564,18 +602,18 @@ class _HomePageState extends State<HomePage>
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: analysis.isPing
+                          color: isPing
                               ? Colors.blue.shade100
-                              : Colors.orange.shade100,
+                              : Colors.red.shade100,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          '${analysis.pingZeDisplay}声',
+                          isPing ? '平' : '仄',
                           style: TextStyle(
                             fontSize: 10,
-                            color: analysis.isPing
+                            color: isPing
                                 ? Colors.blue.shade700
-                                : Colors.orange.shade700,
+                                : Colors.red.shade700,
                           ),
                         ),
                       ),
@@ -1405,7 +1443,75 @@ class _HomePageState extends State<HomePage>
   Future<void> _generateGuaByTextWithMethod(TextDivinationMethod method) async {
     if (_inputText.isEmpty) return;
     final calculator = TextDivinationCalculator();
-    final result = await calculator.calculate(_inputText, method);
+
+    // 如果有音调覆盖且是音调相关的方法，使用覆盖的音调
+    DivinationResult result;
+    if (_toneOverrides.isNotEmpty &&
+        (method == TextDivinationMethod.byModernTone ||
+            method == TextDivinationMethod.byAncientTone)) {
+      // 使用覆盖的音调计算
+      if (method == TextDivinationMethod.byModernTone) {
+        result = await calculator.calculateByModernToneWithOverrides(
+          _inputText,
+          _toneOverrides,
+        );
+      } else {
+        // 平仄方法也需要处理覆盖的音调
+        final summary = await calculator.analyzeText(_inputText);
+        int firstHalfPingZe = 0;
+        int secondHalfPingZe = 0;
+        final mid = (summary.characters.length / 2).ceil();
+
+        for (int i = 0; i < summary.characters.length; i++) {
+          final char = summary.characters[i];
+          final tone = _toneOverrides[char.character] ?? char.modernTone;
+          final isPing = tone == 1 || tone == 2;
+          final pingZeValue = isPing ? 1 : 2;
+          if (i < mid) {
+            firstHalfPingZe += pingZeValue;
+          } else {
+            secondHalfPingZe += pingZeValue;
+          }
+        }
+
+        final totalPingZeValue = firstHalfPingZe + secondHalfPingZe;
+        final changingYao = totalPingZeValue % 6;
+
+        final originalGua = Gua.fromNumbers(
+          firstHalfPingZe % 8 == 0 ? 8 : firstHalfPingZe % 8,
+          secondHalfPingZe % 8 == 0 ? 8 : secondHalfPingZe % 8,
+          changingYao == 0 ? 6 : changingYao,
+        );
+
+        result = DivinationResult(
+          method: DivinationMethod.text,
+          originalGua: originalGua,
+          changedGua: MeiHuaService()
+              .manualDivination(
+                upperGuaNum: originalGua.upperNumber,
+                lowerGuaNum: originalGua.lowerNumber,
+                changingYao: originalGua.changingYao,
+              )
+              .changedGua,
+          huGua: MeiHuaService()
+              .manualDivination(
+                upperGuaNum: originalGua.upperNumber,
+                lowerGuaNum: originalGua.lowerNumber,
+                changingYao: originalGua.changingYao,
+              )
+              .huGua,
+          timestamp: DateTime.now(),
+          params: {
+            'upperValue': firstHalfPingZe,
+            'lowerValue': secondHalfPingZe,
+            'changingYao': changingYao,
+          },
+        );
+      }
+    } else {
+      result = await calculator.calculate(_inputText, method);
+    }
+
     setState(() {
       _result = result;
     });

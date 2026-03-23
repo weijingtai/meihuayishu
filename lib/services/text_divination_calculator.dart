@@ -137,6 +137,38 @@ class TextDivinationCalculator {
     );
   }
 
+  /// 按现代四声起卦（支持音调覆盖）
+  Future<DivinationResult> calculateByModernToneWithOverrides(
+    String text,
+    Map<String, int> toneOverrides,
+  ) async {
+    final summary = await analyzeText(text);
+
+    // 使用覆盖的音调计算
+    int firstHalfTones = 0;
+    int secondHalfTones = 0;
+    final mid = (summary.characters.length / 2).ceil();
+
+    for (int i = 0; i < summary.characters.length; i++) {
+      final char = summary.characters[i];
+      final tone = toneOverrides[char.character] ?? char.modernTone;
+      if (i < mid) {
+        firstHalfTones += tone;
+      } else {
+        secondHalfTones += tone;
+      }
+    }
+
+    final totalToneValue = firstHalfTones + secondHalfTones;
+    final changingYao = totalToneValue % 6;
+
+    return _createResult(
+      upperValue: firstHalfTones,
+      lowerValue: secondHalfTones,
+      changingYao: changingYao,
+    );
+  }
+
   /// 按古代平仄起卦
   Future<DivinationResult> calculateByAncientTone(String text) async {
     final summary = await analyzeText(text);
