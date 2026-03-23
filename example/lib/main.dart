@@ -1463,6 +1463,7 @@ class _HomePageState extends State<HomePage>
             startOffset: 3,
             themeConfig: themeConfig,
             indicator: indicator,
+            showIndicator: showChangingIndicator,
           ),
           const SizedBox(height: 4),
           // 下卦（三爻）
@@ -1473,6 +1474,7 @@ class _HomePageState extends State<HomePage>
             startOffset: 0,
             themeConfig: themeConfig,
             indicator: indicator,
+            showIndicator: showChangingIndicator,
           ),
         ],
       ),
@@ -1487,6 +1489,7 @@ class _HomePageState extends State<HomePage>
     required int startOffset,
     required YaoThemeConfig themeConfig,
     required ChangingYaoIndicator indicator,
+    bool showIndicator = true,
   }) {
     final yaoList = binary.split('').reversed.toList(); // 从上往下
 
@@ -1522,6 +1525,7 @@ class _HomePageState extends State<HomePage>
               color: color,
               isChanging: isChanging,
               indicator: indicator,
+              showIndicator: showIndicator,
             ),
           );
         }),
@@ -1535,6 +1539,7 @@ class _HomePageState extends State<HomePage>
     required Color color,
     required bool isChanging,
     required ChangingYaoIndicator indicator,
+    bool showIndicator = true,
   }) {
     // 根据阴爻/阳爻和颜色模式决定是否使用反色
     Color displayColor = color;
@@ -1547,7 +1552,7 @@ class _HomePageState extends State<HomePage>
     // 爻的宽度
     const yaoWidth = 50.0;
     const indicatorWidth = 12.0;
-    const indicatorSize = 8.0;
+    const indicatorSize = 7.0;
 
     // 构建爻本体
     Widget yaoBody;
@@ -1590,9 +1595,11 @@ class _HomePageState extends State<HomePage>
       );
     }
 
-    // 构建指示器
+    // 构建指示器（仅本卦显示）
     Widget? indicatorWidget;
-    if (isChanging && indicator.type != ChangingYaoIndicatorType.none) {
+    if (showIndicator &&
+        isChanging &&
+        indicator.type != ChangingYaoIndicatorType.none) {
       if (indicator.type == ChangingYaoIndicatorType.text) {
         indicatorWidget = Text(
           indicator.text,
@@ -1615,7 +1622,7 @@ class _HomePageState extends State<HomePage>
         // 左侧固定宽度容器（用于指示器）
         SizedBox(
           width: indicatorWidth,
-          height: 16,
+          height: 12,
           child: indicatorWidget != null
               ? Center(child: indicatorWidget)
               : null,
