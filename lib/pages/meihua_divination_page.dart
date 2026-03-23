@@ -6,6 +6,7 @@ import '../models/divination_result.dart';
 import '../widgets/gua_display_widget.dart';
 import '../widgets/gua_selector_widget.dart';
 import '../widgets/yao_selector_widget.dart';
+import '../utils/pinyin_tone_converter.dart';
 
 class MeiHuaDivinationPage extends StatefulWidget {
   const MeiHuaDivinationPage({super.key});
@@ -321,6 +322,18 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
                             // 判断平仄 (1-2声为平，3-4声为仄)
                             final isPing = currentTone == 1 || currentTone == 2;
 
+                            // 获取无声调拼音
+                            final basePinyin = pinyin.isNotEmpty
+                                ? pinyin.substring(0,
+                                    pinyin.length - (originalTone > 0 ? 1 : 0))
+                                : char;
+                            // 根据当前音调显示正确的拼音声调标记
+                            final displayPinyin =
+                                _toneOverrides.containsKey(char)
+                                    ? PinyinToneConverter.convertTone(
+                                        basePinyin, currentTone)
+                                    : pinyin;
+
                             return Container(
                               width: 100,
                               padding: const EdgeInsets.all(12),
@@ -361,12 +374,7 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        pinyin.isNotEmpty
-                                            ? pinyin.substring(
-                                                0,
-                                                pinyin.length -
-                                                    (originalTone > 0 ? 1 : 0))
-                                            : char,
+                                        displayPinyin,
                                         style: TextStyle(
                                           fontSize: 13,
                                           color: Colors.blue.shade700,

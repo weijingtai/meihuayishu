@@ -19,6 +19,7 @@ export 'widgets/gua_selector_widget.dart';
 export 'widgets/yao_selector_widget.dart';
 export 'services/meihua_service.dart';
 export 'services/text_divination_calculator.dart';
+export 'utils/pinyin_tone_converter.dart';
 
 class MeiHuaYiShuModule {
   static final Logger _logger = Logger();

@@ -524,6 +524,15 @@ class _HomePageState extends State<HomePage>
                 // 判断平仄 (1-2声为平，3-4声为仄)
                 final isPing = currentTone == 1 || currentTone == 2;
 
+                // 根据当前音调显示正确的拼音声调标记
+                final displayPinyin =
+                    _toneOverrides.containsKey(analysis.character)
+                    ? PinyinToneConverter.convertTone(
+                        analysis.pinyinWithoutTone,
+                        currentTone,
+                      )
+                    : analysis.pinyinWithTone;
+
                 return Container(
                   width: 80,
                   padding: const EdgeInsets.all(8),
@@ -555,7 +564,7 @@ class _HomePageState extends State<HomePage>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            analysis.pinyinWithTone,
+                            displayPinyin,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.blue.shade700,
