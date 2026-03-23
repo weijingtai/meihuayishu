@@ -255,6 +255,149 @@ class DivinationFlowDisplay extends StatelessWidget {
 
 /// 起卦流程工厂类 - 提供各种起卦方法的流程数据
 class DivinationFlowFactory {
+  /// 地支名称
+  static const List<String> zhiNames = [
+    '子',
+    '丑',
+    '寅',
+    '卯',
+    '辰',
+    '巳',
+    '午',
+    '未',
+    '申',
+    '酉',
+    '戌',
+    '亥'
+  ];
+
+  /// 农历月份名称
+  static const List<String> lunarMonthNames = [
+    '正月',
+    '二月',
+    '三月',
+    '四月',
+    '五月',
+    '六月',
+    '七月',
+    '八月',
+    '九月',
+    '十月',
+    '冬月',
+    '腊月'
+  ];
+
+  /// 农历日名称
+  static String getLunarDayName(int day) {
+    const prefix = ['初', '十', '廿', '三'];
+    const digits = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+
+    if (day <= 10) {
+      return '初${digits[day - 1]}';
+    } else if (day < 20) {
+      return '十${digits[day - 11]}';
+    } else if (day == 20) {
+      return '二十';
+    } else if (day < 30) {
+      return '廿${digits[day - 21]}';
+    } else if (day == 30) {
+      return '三十';
+    }
+    return '$day';
+  }
+
+  /// 农历起卦流程（带详细转换）
+  static DivinationFlowDisplay lunarDivinationFlow({
+    required int yearZhiNum,
+    required String yearZhiName,
+    required int lunarMonth,
+    required String lunarMonthName,
+    required int lunarDay,
+    required String lunarDayName,
+    required int hourZhiNum,
+    required String hourZhiName,
+    required int upperGuaNum,
+    required int lowerGuaNum,
+    required int changingYao,
+  }) {
+    final upperSum = yearZhiNum + lunarMonth + lunarDay;
+    final lowerSum = upperSum + hourZhiNum;
+
+    return DivinationFlowDisplay(
+      methodName: '农历起卦',
+      steps: [
+        const DivinationFlowStep(
+          title: '获取农历时间',
+          description: '获取或输入农历年月日时',
+        ),
+        DivinationFlowStep(
+          title: '年 → 地支序数',
+          description: '取生肖地支序数',
+          variables: {
+            '地支': yearZhiName,
+            '序数': yearZhiNum,
+          },
+          formula: '$yearZhiName → $yearZhiNum',
+        ),
+        DivinationFlowStep(
+          title: '月 → 农历月数',
+          description: '取农历月份',
+          variables: {
+            '农历月': lunarMonthName,
+            '月数': lunarMonth,
+          },
+          formula: '$lunarMonthName → $lunarMonth',
+        ),
+        DivinationFlowStep(
+          title: '日 → 农历日数',
+          description: '取农历日数',
+          variables: {
+            '农历日': lunarDayName,
+            '日数': lunarDay,
+          },
+          formula: '$lunarDayName → $lunarDay',
+        ),
+        DivinationFlowStep(
+          title: '时 → 时辰序数',
+          description: '取时辰地支序数',
+          variables: {
+            '时辰': hourZhiName,
+            '序数': hourZhiNum,
+          },
+          formula: '$hourZhiName → $hourZhiNum',
+        ),
+        DivinationFlowStep(
+          title: '计算上卦',
+          description: '(年 + 月 + 日) ÷ 8 取余',
+          variables: {
+            '总和': '$yearZhiNum + $lunarMonth + $lunarDay = $upperSum',
+          },
+          formula:
+              '上卦 = ($upperSum) % 8 = ${upperGuaNum == 0 ? 8 : upperGuaNum}',
+        ),
+        DivinationFlowStep(
+          title: '计算下卦',
+          description: '(年 + 月 + 日 + 时) ÷ 8 取余',
+          variables: {
+            '总和': '$upperSum + $hourZhiNum = $lowerSum',
+          },
+          formula:
+              '下卦 = ($lowerSum) % 8 = ${lowerGuaNum == 0 ? 8 : lowerGuaNum}',
+        ),
+        DivinationFlowStep(
+          title: '计算动爻',
+          description: '(年 + 月 + 日 + 时) ÷ 6 取余',
+          formula: '动爻 = ($lowerSum) % 6 = $changingYao',
+        ),
+      ],
+      finalResult: {
+        '上卦数': upperGuaNum,
+        '下卦数': lowerGuaNum,
+        '动爻': changingYao,
+      },
+    );
+  }
+
   /// 时间起卦流程
   static DivinationFlowDisplay timeDivinationFlow({
     required int yearZhiNum,

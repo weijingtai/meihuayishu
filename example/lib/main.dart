@@ -63,6 +63,8 @@ class _HomePageState extends State<HomePage>
   Map<int, int> _sentenceCountOverrides = {};
   // 流程显示状态
   bool _showFlow = false;
+  // 是否为农历起卦
+  bool _isLunarDivination = false;
 
   @override
   void initState() {
@@ -1663,15 +1665,39 @@ class _HomePageState extends State<HomePage>
     Widget flowWidget;
     switch (method) {
       case DivinationMethod.time:
-        flowWidget = DivinationFlowFactory.timeDivinationFlow(
-          yearZhiNum: _result!.params?['yearZhiNum'] ?? 1,
-          lunarMonth: _result!.params?['lunarMonth'] ?? 1,
-          lunarDay: _result!.params?['lunarDay'] ?? 1,
-          hourZhiNum: _result!.params?['hourZhiNum'] ?? 1,
-          upperGuaNum: gua.upperNumber,
-          lowerGuaNum: gua.lowerNumber,
-          changingYao: gua.changingYao,
-        );
+        // 判断是农历起卦还是普通时间起卦
+        if (_isLunarDivination) {
+          final yearZhiNum = _result!.params?['yearZhiNum'] ?? 1;
+          final lunarMonth = _result!.params?['lunarMonth'] ?? 1;
+          final lunarDay = _result!.params?['lunarDay'] ?? 1;
+          final hourZhiNum = _result!.params?['hourZhiNum'] ?? 1;
+
+          flowWidget = DivinationFlowFactory.lunarDivinationFlow(
+            yearZhiNum: yearZhiNum,
+            yearZhiName: DivinationFlowFactory.zhiNames[yearZhiNum - 1],
+            lunarMonth: lunarMonth,
+            lunarMonthName: lunarMonth <= 12
+                ? DivinationFlowFactory.lunarMonthNames[lunarMonth - 1]
+                : '$lunarMonth月',
+            lunarDay: lunarDay,
+            lunarDayName: DivinationFlowFactory.getLunarDayName(lunarDay),
+            hourZhiNum: hourZhiNum,
+            hourZhiName: DivinationFlowFactory.zhiNames[hourZhiNum - 1],
+            upperGuaNum: gua.upperNumber,
+            lowerGuaNum: gua.lowerNumber,
+            changingYao: gua.changingYao,
+          );
+        } else {
+          flowWidget = DivinationFlowFactory.timeDivinationFlow(
+            yearZhiNum: _result!.params?['yearZhiNum'] ?? 1,
+            lunarMonth: _result!.params?['lunarMonth'] ?? 1,
+            lunarDay: _result!.params?['lunarDay'] ?? 1,
+            hourZhiNum: _result!.params?['hourZhiNum'] ?? 1,
+            upperGuaNum: gua.upperNumber,
+            lowerGuaNum: gua.lowerNumber,
+            changingYao: gua.changingYao,
+          );
+        }
         break;
       case DivinationMethod.number:
         final numbers =
@@ -2019,6 +2045,7 @@ class _HomePageState extends State<HomePage>
     final service = context.read<MeiHuaService>();
     final now = DateTime.now();
     setState(() {
+      _isLunarDivination = false;
       _result = service.xianTianDivination([
         now.year,
         now.month,
@@ -2051,6 +2078,7 @@ class _HomePageState extends State<HomePage>
     final hourZhiNum = timeZhiIndex == 0 ? 12 : timeZhiIndex;
 
     setState(() {
+      _isLunarDivination = true;
       _result = service.timeDivination(
         yearZhiNum: yearZhiIndex,
         lunarMonth: lunarMonth,
