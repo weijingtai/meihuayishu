@@ -496,7 +496,6 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
   /// 构建句子分析卡片
   Widget _buildSentenceAnalysisCard(Map<String, dynamic> analysis) {
     final sentenceCount = analysis['sentenceCount'] as int;
-    final sentences = analysis['sentences'] as List<String>;
     final charCounts = analysis['charCounts'] as List<int>;
     final totalChars = analysis['totalChars'] as int;
 
