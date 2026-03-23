@@ -9,7 +9,6 @@ import '../models/text_divination_method.dart';
 import '../widgets/gua_display_widget.dart';
 import '../widgets/gua_selector_widget.dart';
 import '../widgets/yao_selector_widget.dart';
-import '../widgets/divination_flow_display.dart';
 import '../utils/pinyin_tone_converter.dart';
 
 class MeiHuaDivinationPage extends StatefulWidget {
@@ -44,7 +43,7 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadLongTextThreshold();
   }
 
@@ -82,7 +81,6 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
             Tab(text: '报数'),
             Tab(text: '文字'),
             Tab(text: '手动'),
-            Tab(text: '流程'),
           ],
         ),
       ),
@@ -93,7 +91,6 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
           _buildNumberTab(),
           _buildTextTab(),
           _buildManualTab(),
-          _buildFlowTab(),
         ],
       ),
     );
@@ -849,115 +846,5 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
         changingYao: _selectedYao!,
       );
     });
-  }
-
-  /// 起卦流程展示Tab
-  Widget _buildFlowTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            '起卦流程说明',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '以下是所有起卦方法的详细计算流程',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 16),
-
-          // 时间起卦流程
-          DivinationFlowFactory.timeDivinationFlow(
-            yearZhiNum: 1,
-            lunarMonth: 1,
-            lunarDay: 15,
-            hourZhiNum: 5,
-            upperGuaNum: 1,
-            lowerGuaNum: 6,
-            changingYao: 4,
-          ),
-          const SizedBox(height: 16),
-
-          // 报数起卦流程
-          DivinationFlowFactory.numberDivinationFlow(
-            numbers: [1, 2, 3, 4, 5],
-            upperGuaNum: 6,
-            lowerGuaNum: 9 % 8 == 0 ? 8 : 9 % 8,
-            changingYao: 15 % 6 == 0 ? 6 : 15 % 6,
-          ),
-          const SizedBox(height: 16),
-
-          // 按字数起卦流程
-          DivinationFlowFactory.charCountFlow(
-            text: '梅花易数',
-            charCount: 4,
-            upperGuaNum: 2,
-            lowerGuaNum: 2,
-            changingYao: 4,
-          ),
-          const SizedBox(height: 16),
-
-          // 按笔画起卦流程
-          DivinationFlowFactory.strokeFlow(
-            text: '梅花',
-            strokeCounts: [11, 8],
-            totalStrokes: 19,
-            upperGuaNum: 11 % 8 == 0 ? 8 : 11 % 8,
-            lowerGuaNum: 8,
-            changingYao: 19 % 6 == 0 ? 6 : 19 % 6,
-          ),
-          const SizedBox(height: 16),
-
-          // 按音调起卦流程
-          DivinationFlowFactory.toneFlow(
-            text: '梅花',
-            tones: [2, 1],
-            upperSum: 2,
-            lowerSum: 1,
-            totalTone: 3,
-            upperGuaNum: 2,
-            lowerGuaNum: 1,
-            changingYao: 3,
-          ),
-          const SizedBox(height: 16),
-
-          // 按句数起卦流程
-          DivinationFlowFactory.sentenceCountFlow(
-            text: '春风又绿江南岸。明月何时照我还。',
-            sentences: ['春风又绿江南岸', '明月何时照我还'],
-            sentenceCount: 2,
-            upperGuaNum: 1,
-            lowerGuaNum: 1,
-            changingYao: 2,
-          ),
-          const SizedBox(height: 16),
-
-          // 按句子字数起卦流程
-          DivinationFlowFactory.sentenceLengthFlow(
-            text: '春风又绿江南岸。明月何时照我还。',
-            sentences: ['春风又绿江南岸', '明月何时照我还'],
-            charCounts: [6, 6],
-            upperSum: 6,
-            lowerSum: 6,
-            totalChars: 12,
-            upperGuaNum: 6,
-            lowerGuaNum: 6,
-            changingYao: 12 % 6 == 0 ? 6 : 12 % 6,
-          ),
-          const SizedBox(height: 16),
-
-          // 手动起卦流程
-          DivinationFlowFactory.manualFlow(
-            upperGuaNum: 1,
-            lowerGuaNum: 2,
-            changingYao: 3,
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
   }
 }
