@@ -1610,19 +1610,22 @@ class _HomePageState extends State<HomePage>
     // 使用左右 SizedBox 保持爻居中对齐
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // 左侧固定宽度容器（用于指示器）
         SizedBox(
           width: indicatorWidth,
-          height: 10,
+          height: 16,
           child: indicatorWidget != null
               ? Center(child: indicatorWidget)
               : null,
         ),
+        const SizedBox(width: 4), // 增加4px间距
         // 爻本体
         yaoBody,
+        const SizedBox(width: 4), // 增加4px间距
         // 右侧固定宽度容器（保持对称）
-        const SizedBox(width: indicatorWidth),
+        const SizedBox(width: indicatorWidth + 4),
       ],
     );
   }
