@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meihuayishu/meihuayishu.dart';
 import 'package:provider/provider.dart';
+import 'package:lunar/lunar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -207,16 +208,36 @@ class _HomePageState extends State<HomePage>
                         ),
                       ),
                       const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _generateGuaByTime,
-                          icon: const Icon(Icons.auto_awesome),
-                          label: const Text('一键起卦'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _generateGuaByTime,
+                              icon: const Icon(Icons.auto_awesome),
+                              label: const Text('一键起卦'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _generateGuaByLunarTime,
+                              icon: const Icon(Icons.brightness_3),
+                              label: const Text('一键农历'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -2005,6 +2026,37 @@ class _HomePageState extends State<HomePage>
         now.hour,
         now.minute,
       ]);
+    });
+  }
+
+  void _generateGuaByLunarTime() {
+    final service = context.read<MeiHuaService>();
+    final now = DateTime.now();
+
+    // 将阳历转换为农历
+    final solar = Solar.fromYmd(now.year, now.month, now.day);
+    final lunar = solar.getLunar();
+
+    // 获取农历年地支序数 (子=1, 丑=2, ..., 亥=12)
+    final yearZhiIndex = lunar.getYearZhiIndex() + 1;
+
+    // 获取农历月 (1-12)
+    final lunarMonth = lunar.getMonth();
+
+    // 获取农历日 (1-30)
+    final lunarDay = lunar.getDay();
+
+    // 获取时辰地支序数 (子=1, 丑=2, ..., 亥=12)
+    final timeZhiIndex = (now.hour + 1) ~/ 2;
+    final hourZhiNum = timeZhiIndex == 0 ? 12 : timeZhiIndex;
+
+    setState(() {
+      _result = service.timeDivination(
+        yearZhiNum: yearZhiIndex,
+        lunarMonth: lunarMonth,
+        lunarDay: lunarDay,
+        hourZhiNum: hourZhiNum,
+      );
     });
   }
 
