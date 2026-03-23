@@ -227,10 +227,15 @@ class TextDivinationCalculator {
   Future<DivinationResult> calculateBySentenceLength(String text) async {
     final sentences = _splitByPunctuation(text);
 
+    // 使用显式标点符号列表
+    const punctuationChars = '。！？，、；：""'
+        '（）【】《》…—·～'
+        '.,!?;:\'\"()[]{}<>@#\$%^&*_-+=|\\\\/~`\s';
+    final punctuationPattern = RegExp('[$punctuationChars]');
+
     // 计算每个句子的字数（去除标点和空格）
     final charCounts = sentences.map((sentence) {
-      final cleanSentence =
-          sentence.replaceAll(RegExp(r'[\p{P}\p{S}\s]', unicode: true), '');
+      final cleanSentence = sentence.replaceAll(punctuationPattern, '');
       return cleanSentence.length;
     }).toList();
 
@@ -268,9 +273,14 @@ class TextDivinationCalculator {
   /// 获取句子分割结果（用于UI展示）
   Map<String, dynamic> getSentenceAnalysis(String text) {
     final sentences = _splitByPunctuation(text);
+    // 使用显式标点符号列表
+    const punctuationChars = '。！？，、；：""'
+        '（）【】《》…—·～'
+        '.,!?;:\'\"()[]{}<>@#\$%^&*_-+=|\\\\/~`\s';
+    final punctuationPattern = RegExp('[$punctuationChars]');
+
     final charCounts = sentences.map((sentence) {
-      final cleanSentence =
-          sentence.replaceAll(RegExp(r'[\p{P}\p{S}\s]', unicode: true), '');
+      final cleanSentence = sentence.replaceAll(punctuationPattern, '');
       return cleanSentence.length;
     }).toList();
 

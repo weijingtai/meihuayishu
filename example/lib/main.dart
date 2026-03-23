@@ -574,6 +574,7 @@ class _HomePageState extends State<HomePage>
   /// 构建句子分析卡片
   Widget _buildSentenceAnalysisCard(Map<String, dynamic> analysis) {
     final sentenceCount = analysis['sentenceCount'] as int;
+    final sentences = analysis['sentences'] as List<String>;
     final charCounts = analysis['charCounts'] as List<int>;
     final totalChars = analysis['totalChars'] as int;
 
@@ -599,44 +600,53 @@ class _HomePageState extends State<HomePage>
             const SizedBox(height: 12),
             Text('共 $sentenceCount 句', style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 12),
-            // 显示每句字数
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: List.generate(sentenceCount, (index) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        '第${index + 1}句',
+            // 显示每句内容和字数
+            ...List.generate(sentenceCount, (index) {
+              final sentence = sentences[index];
+              final charCount = charCounts[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '· ',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        sentence,
+                        style: const TextStyle(fontSize: 14),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '[$charCount]',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${charCounts[index]}字',
-                        style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 12,
+                          color: Colors.blue.shade700,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue,
                         ),
                       ),
-                    ],
-                  ),
-                );
-              }),
-            ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),
