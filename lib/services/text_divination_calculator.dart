@@ -184,6 +184,104 @@ class TextDivinationCalculator {
     );
   }
 
+  /// 按标点分句，返回句子列表
+  List<String> _splitByPunctuation(String text) {
+    // 匹配中英文标点符号作为分隔符
+    final punctuationPattern = RegExp(r'[。！？!?；;，,、\.\s]+');
+    final sentences = text
+        .split(punctuationPattern)
+        .where((s) => s.trim().isNotEmpty)
+        .map((s) => s.trim())
+        .toList();
+    return sentences.isNotEmpty ? sentences : [text];
+  }
+
+  /// 按句数起卦（长文本推荐）
+  Future<DivinationResult> calculateBySentenceCount(String text) async {
+    final sentences = _splitByPunctuation(text);
+    final sentenceCount = sentences.length;
+
+    int upperValue, lowerValue;
+
+    if (sentenceCount % 2 == 0) {
+      // 偶数：平分
+      final half = sentenceCount ~/ 2;
+      upperValue = half;
+      lowerValue = half;
+    } else {
+      // 奇数：天轻地重
+      upperValue = (sentenceCount - 1) ~/ 2;
+      lowerValue = (sentenceCount + 1) ~/ 2;
+    }
+
+    final changingYao = sentenceCount % 6;
+
+    return _createResult(
+      upperValue: upperValue,
+      lowerValue: lowerValue,
+      changingYao: changingYao,
+    );
+  }
+
+  /// 按句子中文字数起卦
+  Future<DivinationResult> calculateBySentenceLength(String text) async {
+    final sentences = _splitByPunctuation(text);
+
+    // 计算每个句子的字数（去除标点和空格）
+    final charCounts = sentences.map((sentence) {
+      final cleanSentence =
+          sentence.replaceAll(RegExp(r'[\p{P}\p{S}\s]', unicode: true), '');
+      return cleanSentence.length;
+    }).toList();
+
+    // 使用字数数组起卦
+    int totalChars = charCounts.fold(0, (sum, count) => sum + count);
+
+    // 上卦 = 前半部分字数之和
+    // 下卦 = 后半部分字数之和
+    int upperValue = 0;
+    int lowerValue = 0;
+    final mid = (charCounts.length / 2).ceil();
+
+    for (int i = 0; i < charCounts.length; i++) {
+      if (i < mid) {
+        upperValue += charCounts[i];
+      } else {
+        lowerValue += charCounts[i];
+      }
+    }
+
+    // 如果只有一个句子，上下卦相同
+    if (charCounts.length == 1) {
+      lowerValue = upperValue;
+    }
+
+    final changingYao = totalChars % 6;
+
+    return _createResult(
+      upperValue: upperValue,
+      lowerValue: lowerValue,
+      changingYao: changingYao,
+    );
+  }
+
+  /// 获取句子分割结果（用于UI展示）
+  Map<String, dynamic> getSentenceAnalysis(String text) {
+    final sentences = _splitByPunctuation(text);
+    final charCounts = sentences.map((sentence) {
+      final cleanSentence =
+          sentence.replaceAll(RegExp(r'[\p{P}\p{S}\s]', unicode: true), '');
+      return cleanSentence.length;
+    }).toList();
+
+    return {
+      'sentenceCount': sentences.length,
+      'sentences': sentences,
+      'charCounts': charCounts,
+      'totalChars': charCounts.fold(0, (sum, count) => sum + count),
+    };
+  }
+
   /// 根据方法起卦
   Future<DivinationResult> calculate(
       String text, TextDivinationMethod method) async {
@@ -196,6 +294,10 @@ class TextDivinationCalculator {
         return await calculateByModernTone(text);
       case TextDivinationMethod.byAncientTone:
         return await calculateByAncientTone(text);
+      case TextDivinationMethod.bySentenceCount:
+        return await calculateBySentenceCount(text);
+      case TextDivinationMethod.bySentenceLength:
+        return await calculateBySentenceLength(text);
     }
   }
 

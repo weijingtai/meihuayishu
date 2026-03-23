@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/meihua_service.dart';
 import '../services/dictionary_stroke_service.dart';
 import '../models/divination_result.dart';
@@ -32,11 +33,28 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
   String _inputText = '';
   // 用户修改的音调映射 (字符 -> 音调 1-4)
   Map<String, int> _toneOverrides = {};
+  // 长文本阈值 N
+  int _longTextThreshold = 10;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _loadLongTextThreshold();
+  }
+
+  // 从本地存储加载长文本阈值
+  Future<void> _loadLongTextThreshold() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _longTextThreshold = prefs.getInt('long_text_threshold') ?? 10;
+    });
+  }
+
+  // 保存长文本阈值到本地存储
+  Future<void> _saveLongTextThreshold(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('long_text_threshold', value);
   }
 
   @override
