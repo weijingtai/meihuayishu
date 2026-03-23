@@ -58,6 +58,8 @@ class _HomePageState extends State<HomePage>
   Map<String, int> _toneOverrides = {};
   // 长文本阈值
   int _longTextThreshold = 10;
+  // 用户修改的句子字数映射 (句子索引 -> 字数)
+  Map<int, int> _sentenceCountOverrides = {};
 
   @override
   void initState() {
@@ -576,7 +578,11 @@ class _HomePageState extends State<HomePage>
     final sentenceCount = analysis['sentenceCount'] as int;
     final sentences = analysis['sentences'] as List<String>;
     final charCounts = analysis['charCounts'] as List<int>;
-    final totalChars = analysis['totalChars'] as int;
+    // 计算总字数（使用修改后的字数）
+    int totalChars = 0;
+    for (int i = 0; i < sentenceCount; i++) {
+      totalChars += _sentenceCountOverrides[i] ?? charCounts[i];
+    }
 
     return Card(
       child: Padding(
@@ -600,10 +606,14 @@ class _HomePageState extends State<HomePage>
             const SizedBox(height: 12),
             Text('共 $sentenceCount 句', style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 12),
-            // 显示每句内容和字数
+            // 显示每句内容和可编辑字数
             ...List.generate(sentenceCount, (index) {
               final sentence = sentences[index];
-              final charCount = charCounts[index];
+              final originalCount = charCounts[index];
+              final currentCount =
+                  _sentenceCountOverrides[index] ?? originalCount;
+              final isModified = _sentenceCountOverrides.containsKey(index);
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Row(
@@ -625,22 +635,56 @@ class _HomePageState extends State<HomePage>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '[$charCount]',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue.shade700,
-                          fontWeight: FontWeight.bold,
+                    // 可编辑的字数输入框
+                    SizedBox(
+                      width: 50,
+                      height: 32,
+                      child: TextField(
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        controller: TextEditingController(
+                          text: currentCount.toString(),
                         ),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isModified ? Colors.orange : Colors.blue,
+                        ),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 4,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: BorderSide(
+                              color: isModified
+                                  ? Colors.orange
+                                  : Colors.blue.shade200,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: BorderSide(
+                              color: isModified
+                                  ? Colors.orange
+                                  : Colors.blue.shade200,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: isModified
+                              ? Colors.orange.shade50
+                              : Colors.white,
+                        ),
+                        onChanged: (value) {
+                          final n = int.tryParse(value);
+                          if (n != null && n >= 0) {
+                            setState(() {
+                              _sentenceCountOverrides[index] = n;
+                            });
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -1688,7 +1732,22 @@ class _HomePageState extends State<HomePage>
         );
       }
     } else {
-      result = await calculator.calculate(_inputText, method);
+      // 如果是按句子字数起卦且有字数覆盖，使用覆盖的字数
+      if (method == TextDivinationMethod.bySentenceLength &&
+          _sentenceCountOverrides.isNotEmpty) {
+        final calculator2 = TextDivinationCalculator();
+        final analysis = calculator2.getSentenceAnalysis(_inputText);
+        final originalCounts = analysis['charCounts'] as List<int>;
+        final List<int> finalCounts = [];
+        for (int i = 0; i < originalCounts.length; i++) {
+          finalCounts.add(_sentenceCountOverrides[i] ?? originalCounts[i]);
+        }
+        result = await calculator.calculateBySentenceLengthWithOverrides(
+          finalCounts,
+        );
+      } else {
+        result = await calculator.calculate(_inputText, method);
+      }
     }
 
     setState(() {

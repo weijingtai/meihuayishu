@@ -239,6 +239,18 @@ class TextDivinationCalculator {
       return cleanSentence.length;
     }).toList();
 
+    return _calculateByCharCounts(charCounts);
+  }
+
+  /// 按句子中文字数起卦（支持字数覆盖）
+  Future<DivinationResult> calculateBySentenceLengthWithOverrides(
+    List<int> charCounts,
+  ) async {
+    return _calculateByCharCounts(charCounts);
+  }
+
+  /// 根据字数数组计算起卦结果
+  DivinationResult _calculateByCharCounts(List<int> charCounts) {
     // 使用字数数组起卦
     int totalChars = charCounts.fold(0, (sum, count) => sum + count);
 
