@@ -769,16 +769,49 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  /// 获取卦名
+  /// 获取卦名（支持先天卦和后天卦）
   String _getGuaName(int guaNum) {
-    const names = ['乾', '兑', '离', '震', '巽', '坎', '艮', '坤'];
-    return names[(guaNum - 1) % 8];
+    if (_isXianTianGua) {
+      // 先天卦：乾1兑2离3震4巽5坎6艮7坤8
+      const names = ['乾', '兑', '离', '震', '巽', '坎', '艮', '坤'];
+      return names[(guaNum - 1) % 8];
+    } else {
+      // 后天卦：坎1坤2震3巽4乾6兑7艮8离9
+      const houTianNames = {
+        1: '坎',
+        2: '坤',
+        3: '震',
+        4: '巽',
+        6: '乾',
+        7: '兑',
+        8: '艮',
+        9: '离',
+      };
+      return houTianNames[guaNum] ?? '未知';
+    }
   }
 
-  /// 获取卦的二进制表示
+  /// 获取卦的二进制表示（仅先天卦有二进制）
   String _getGuaBinary(int guaNum) {
-    const binaries = ['111', '110', '101', '100', '011', '010', '001', '000'];
-    return binaries[(guaNum - 1) % 8];
+    if (_isXianTianGua) {
+      const binaries = ['111', '110', '101', '100', '011', '010', '001', '000'];
+      return binaries[(guaNum - 1) % 8];
+    } else {
+      // 后天卦使用先天卦数映射
+      const houTianToXianTian = {
+        1: 6,
+        2: 8,
+        3: 4,
+        4: 5,
+        6: 1,
+        7: 2,
+        8: 7,
+        9: 3,
+      };
+      final xianTianNum = houTianToXianTian[guaNum] ?? 1;
+      const binaries = ['111', '110', '101', '100', '011', '010', '001', '000'];
+      return binaries[(xianTianNum - 1) % 8];
+    }
   }
 
   /// 构建动爻选择器（显示真实爻）
@@ -1381,10 +1414,31 @@ class _HomePageState extends State<HomePage>
   void _generateManualGua() {
     if (!_canGenerateManual) return;
     final service = context.read<MeiHuaService>();
+
+    int upperNum = _selectedUpperGua!;
+    int lowerNum = _selectedLowerGua!;
+
+    // 如果是后天卦模式，需要转换为先天卦数字
+    if (!_isXianTianGua) {
+      // 后天卦 → 先天卦 映射
+      const houTianToXianTian = {
+        1: 6, // 坎
+        2: 8, // 坤
+        3: 4, // 震
+        4: 5, // 巽
+        6: 1, // 乾
+        7: 2, // 兑
+        8: 7, // 艮
+        9: 3, // 离
+      };
+      upperNum = houTianToXianTian[upperNum] ?? upperNum;
+      lowerNum = houTianToXianTian[lowerNum] ?? lowerNum;
+    }
+
     setState(() {
       _result = service.manualDivination(
-        upperGuaNum: _selectedUpperGua!,
-        lowerGuaNum: _selectedLowerGua!,
+        upperGuaNum: upperNum,
+        lowerGuaNum: lowerNum,
         changingYao: _selectedYao!,
       );
     });
