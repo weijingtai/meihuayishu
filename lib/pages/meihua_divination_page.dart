@@ -318,19 +318,13 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
 
         final isLong = isLongText(inputText);
 
-        // 可用的起卦方法
-        final availableMethods = isLong
-            ? TextDivinationMethod.values
-                .where((m) =>
-                    m.isLongTextRecommended ||
-                    m == TextDivinationMethod.byCharCount)
-                .toList()
-            : TextDivinationMethod.values;
+        // 可用的起卦方法 - 始终显示所有方法
+        final availableMethods = TextDivinationMethod.values;
 
-        // 如果当前方法在长文本模式下不可用，自动切换
-        if (isLong && !availableMethods.contains(_selectedTextMethod)) {
-          _selectedTextMethod = TextDivinationMethod.bySentenceCount;
-        }
+        // 如果当前方法在长文本模式下不推荐，显示提示
+        final isCurrentMethodRecommended = !isLong ||
+            _selectedTextMethod.isLongTextRecommended ||
+            _selectedTextMethod == TextDivinationMethod.byCharCount;
 
         return Padding(
           padding: const EdgeInsets.all(16.0),
@@ -400,10 +394,34 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
                           isDense: true,
                         ),
                         items: availableMethods.map((method) {
+                          final isRecommended = method.isLongTextRecommended ||
+                              method == TextDivinationMethod.byCharCount;
                           return DropdownMenuItem(
                             value: method,
-                            child: Text(method.displayName,
-                                style: const TextStyle(fontSize: 14)),
+                            child: Row(
+                              children: [
+                                Text(method.displayName,
+                                    style: const TextStyle(fontSize: 14)),
+                                if (isLong && isRecommended) ...[
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade100,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '推荐',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.orange.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           );
                         }).toList(),
                         onChanged: (value) {
