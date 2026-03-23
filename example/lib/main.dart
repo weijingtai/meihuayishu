@@ -116,76 +116,303 @@ class _HomePageState extends State<HomePage>
   /// 时空起卦Tab
   Widget _buildTimeTab() {
     final now = DateTime.now();
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Card(
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.access_time,
-                    size: 48,
-                    color: Colors.deepPurple,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '时空起卦',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '根据当前时间自动起卦\n先天起卦法：先得数，再由数定卦',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '${now.year}年${now.month}月${now.day}日',
-                          style: const TextStyle(fontSize: 16),
+    // 地支名称
+    const zhiNames = [
+      '子',
+      '丑',
+      '寅',
+      '卯',
+      '辰',
+      '巳',
+      '午',
+      '未',
+      '申',
+      '酉',
+      '戌',
+      '亥',
+    ];
+
+    return StatefulBuilder(
+      builder: (context, setLocalState) {
+        // 农历起卦输入值
+        int selectedYearZhi = 1; // 默认子年
+        int selectedMonth = 1; // 默认正月
+        int selectedDay = 1; // 默认初一
+        int selectedHourZhi = 1; // 默认子时
+
+        void generateLunarGua() {
+          final service = context.read<MeiHuaService>();
+          setState(() {
+            _result = service.timeDivination(
+              yearZhiNum: selectedYearZhi,
+              lunarMonth: selectedMonth,
+              lunarDay: selectedDay,
+              hourZhiNum: selectedHourZhi,
+            );
+          });
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 当前时间起卦
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.access_time,
+                        size: 48,
+                        color: Colors.deepPurple,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '当前时间起卦',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Text(
-                          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '根据当前时间自动起卦\n先天起卦法：先得数，再由数定卦',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '${now.year}年${now.month}月${now.day}日',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            Text(
+                              '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _generateGuaByTime,
+                          icon: const Icon(Icons.auto_awesome),
+                          label: const Text('一键起卦'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _generateGuaByTime,
-                      icon: const Icon(Icons.auto_awesome),
-                      label: const Text('一键起卦'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 农历起卦
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.calendar_month,
+                        size: 48,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '农历起卦',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '输入农历年月日时起卦\n年取地支序数，月日取农历数，时取地支序数',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 年地支选择
+                      _buildLunarSelector(
+                        label: '年（地支）',
+                        items: List.generate(
+                          12,
+                          (i) => '${zhiNames[i]}${i + 1}',
+                        ),
+                        onChanged: (value) {
+                          setLocalState(() {
+                            selectedYearZhi = value + 1;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 月选择
+                      _buildLunarSelector(
+                        label: '月（农历）',
+                        items: List.generate(12, (i) => '${i + 1}月'),
+                        onChanged: (value) {
+                          setLocalState(() {
+                            selectedMonth = value + 1;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 日选择
+                      _buildLunarSelector(
+                        label: '日（农历）',
+                        items: List.generate(30, (i) => '初${i + 1}'),
+                        onChanged: (value) {
+                          setLocalState(() {
+                            selectedDay = value + 1;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 时地支选择
+                      _buildLunarSelector(
+                        label: '时（地支）',
+                        items: List.generate(
+                          12,
+                          (i) => '${zhiNames[i]}${i + 1}',
+                        ),
+                        onChanged: (value) {
+                          setLocalState(() {
+                            selectedHourZhi = value + 1;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 公式说明
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '起卦公式：',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '上卦 = (年 + 月 + 日) ÷ 8 取余',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange.shade700,
+                              ),
+                            ),
+                            Text(
+                              '下卦 = (年 + 月 + 日 + 时) ÷ 8 取余',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange.shade700,
+                              ),
+                            ),
+                            Text(
+                              '动爻 = (年 + 月 + 日 + 时) ÷ 6 取余',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: generateLunarGua,
+                          icon: const Icon(Icons.auto_awesome),
+                          label: const Text('农历起卦'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (_result != null) _buildResultSection(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 构建农历选择器
+  Widget _buildLunarSelector({
+    required String label,
+    required List<String> items,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(label, style: const TextStyle(fontSize: 14)),
+        ),
+        Expanded(
+          child: Container(
+            height: 40,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                isExpanded: true,
+                value: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                items: List.generate(items.length, (i) {
+                  return DropdownMenuItem(value: i, child: Text(items[i]));
+                }),
+                onChanged: (value) {
+                  if (value != null) onChanged(value);
+                },
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          if (_result != null) _buildResultSection(),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
