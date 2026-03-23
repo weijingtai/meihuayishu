@@ -60,6 +60,8 @@ class _HomePageState extends State<HomePage>
   int _longTextThreshold = 10;
   // 用户修改的句子字数映射 (句子索引 -> 字数)
   Map<int, int> _sentenceCountOverrides = {};
+  // 流程显示状态
+  bool _showFlow = false;
 
   @override
   void initState() {
@@ -1281,62 +1283,177 @@ class _HomePageState extends State<HomePage>
     final changedGua = _result!.changedGua;
     final huGua = _result!.huGua;
 
-    return Card(
-      elevation: 4,
-      color: Colors.deepPurple.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            // 标题和颜色模式切换器
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      children: [
+        Card(
+          elevation: 4,
+          color: Colors.deepPurple.shade50,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
               children: [
-                const Text(
-                  '卦象结果',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
+                // 标题和颜色模式切换器
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '卦象结果',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
+                      ),
+                    ),
+                    _buildColorModeSwitcher(),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // 卦象展示（只有本卦显示变爻指示器）
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildGuaColumn('本卦', gua, showChangingIndicator: true),
+                    if (huGua != null)
+                      _buildGuaColumn(
+                        '互卦',
+                        huGua,
+                        showChangingIndicator: false,
+                      ),
+                    _buildGuaColumn(
+                      '变卦',
+                      changedGua,
+                      showChangingIndicator: false,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildInfoRow('起卦方式', _result!.method.displayName),
+                      _buildInfoRow('动爻位置', '第${gua.changingYao}爻'),
+                      _buildInfoRow(
+                        '本卦',
+                        '${gua.upperGuaName}${gua.lowerGuaName}',
+                      ),
+                      _buildInfoRow(
+                        '变卦',
+                        '${changedGua.upperGuaName}${changedGua.lowerGuaName}',
+                      ),
+                    ],
                   ),
                 ),
-                _buildColorModeSwitcher(),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // 卦象展示（只有本卦显示变爻指示器）
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildGuaColumn('本卦', gua, showChangingIndicator: true),
-                if (huGua != null)
-                  _buildGuaColumn('互卦', huGua, showChangingIndicator: false),
-                _buildGuaColumn('变卦', changedGua, showChangingIndicator: false),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: [
-                  _buildInfoRow('起卦方式', _result!.method.displayName),
-                  _buildInfoRow('动爻位置', '第${gua.changingYao}爻'),
-                  _buildInfoRow('本卦', '${gua.upperGuaName}${gua.lowerGuaName}'),
-                  _buildInfoRow(
-                    '变卦',
-                    '${changedGua.upperGuaName}${changedGua.lowerGuaName}',
+                const SizedBox(height: 12),
+                // 显示起卦流程按钮
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _showFlow = !_showFlow;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _showFlow
+                          ? Colors.deepPurple.shade100
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _showFlow
+                            ? Colors.deepPurple
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _showFlow ? Icons.expand_less : Icons.expand_more,
+                          size: 18,
+                          color: _showFlow
+                              ? Colors.deepPurple
+                              : Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '显示起卦流程',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _showFlow
+                                ? Colors.deepPurple
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        // 流程显示区域
+        if (_showFlow) _buildFlowSection(),
+      ],
     );
+  }
+
+  /// 构建流程展示区域
+  Widget _buildFlowSection() {
+    final gua = _result!.originalGua;
+    final method = _result!.method;
+
+    // 根据起卦方法生成流程
+    Widget flowWidget;
+    switch (method) {
+      case DivinationMethod.time:
+        flowWidget = DivinationFlowFactory.timeDivinationFlow(
+          yearZhiNum: _result!.params?['yearZhiNum'] ?? 1,
+          lunarMonth: _result!.params?['lunarMonth'] ?? 1,
+          lunarDay: _result!.params?['lunarDay'] ?? 1,
+          hourZhiNum: _result!.params?['hourZhiNum'] ?? 1,
+          upperGuaNum: gua.upperNumber,
+          lowerGuaNum: gua.lowerNumber,
+          changingYao: gua.changingYao,
+        );
+        break;
+      case DivinationMethod.number:
+        final numbers =
+            (_result!.params?['numbers'] as List?)?.cast<int>() ?? [1];
+        flowWidget = DivinationFlowFactory.numberDivinationFlow(
+          numbers: numbers,
+          upperGuaNum: gua.upperNumber,
+          lowerGuaNum: gua.lowerNumber,
+          changingYao: gua.changingYao,
+        );
+        break;
+      case DivinationMethod.manual:
+        flowWidget = DivinationFlowFactory.manualFlow(
+          upperGuaNum: gua.upperNumber,
+          lowerGuaNum: gua.lowerNumber,
+          changingYao: gua.changingYao,
+        );
+        break;
+      default:
+        // 文字起卦或其他方法
+        flowWidget = DivinationFlowFactory.charCountFlow(
+          text: _inputText.isNotEmpty ? _inputText : '示例文字',
+          charCount: _inputText.isNotEmpty ? _inputText.length : 4,
+          upperGuaNum: gua.upperNumber,
+          lowerGuaNum: gua.lowerNumber,
+          changingYao: gua.changingYao,
+        );
+    }
+
+    return Padding(padding: const EdgeInsets.only(top: 12), child: flowWidget);
   }
 
   /// 构建颜色模式切换器
