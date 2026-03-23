@@ -17,6 +17,7 @@ export 'pages/theme_edit_page.dart';
 export 'widgets/settings_button.dart';
 export 'widgets/gua_selector_widget.dart';
 export 'widgets/yao_selector_widget.dart';
+export 'widgets/divination_flow_display.dart';
 export 'services/meihua_service.dart';
 export 'services/text_divination_calculator.dart';
 export 'utils/pinyin_tone_converter.dart';
