@@ -56,6 +56,8 @@ class _HomePageState extends State<HomePage>
   bool _isTextLoading = false;
   // 用户修改的音调映射 (字符 -> 音调 1-4)
   Map<String, int> _toneOverrides = {};
+  // 长文本阈值
+  int _longTextThreshold = 10;
 
   @override
   void initState() {
@@ -321,12 +323,29 @@ class _HomePageState extends State<HomePage>
   /// 文字起卦Tab
   Widget _buildTextTab() {
     final calculator = TextDivinationCalculator();
-    final isLongText = _inputText.length > 10;
 
-    // 可用的起卦方法
-    final availableMethods = isLongText
-        ? [TextDivinationMethod.byCharCount]
-        : TextDivinationMethod.values;
+    // 计算非标点符号的文字数量
+    int countNonPunctuation(String text) {
+      const punctuationChars =
+          '。！？，、；：""'
+          '（）【】《》…—·～'
+          '.,!?;:\'\"()[]{}<>@#\$%^&*_-+=|\\\\/~`\s';
+      final punctuationPattern = RegExp('[$punctuationChars]');
+      return text.replaceAll(punctuationPattern, '').length;
+    }
+
+    // 判断是否为长文本
+    bool isLongText(String text) {
+      return countNonPunctuation(text) > _longTextThreshold;
+    }
+
+    final isLong = isLongText(_inputText);
+
+    // 句子分析
+    Map<String, dynamic>? sentenceAnalysis;
+    if (_inputText.isNotEmpty) {
+      sentenceAnalysis = calculator.getSentenceAnalysis(_inputText);
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -350,16 +369,56 @@ class _HomePageState extends State<HomePage>
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    '输入文字，选择起卦方式\n适用于测字、姓名、成语等',
+                  Text(
+                    isLong
+                        ? '长文本模式 (超过 $_longTextThreshold 字)'
+                        : '输入文字，选择起卦方式\n适用于测字、姓名、成语等',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(
+                      color: isLong ? Colors.orange : Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // 长文本阈值设置
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('长文本阈值: '),
+                      SizedBox(
+                        width: 60,
+                        child: TextField(
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          controller: TextEditingController(
+                            text: _longTextThreshold.toString(),
+                          ),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) {
+                            final n = int.tryParse(value);
+                            if (n != null && n > 0) {
+                              setState(() {
+                                _longTextThreshold = n;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const Text(' 字'),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                    maxLines: isLong ? 4 : 1,
                     decoration: InputDecoration(
                       labelText: '输入文字',
-                      hintText: '请输入汉字',
+                      hintText: isLong ? '请输入长文本...' : '请输入汉字',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -369,21 +428,28 @@ class _HomePageState extends State<HomePage>
                       setState(() {
                         _inputText = value;
                         _isTextLoading = true;
-                        _toneOverrides = {}; // 重置音调修改
+                        _toneOverrides = {};
                       });
 
                       if (value.isNotEmpty) {
-                        try {
-                          final result = await calculator.analyzeText(value);
+                        // 长文本跳过字符分析
+                        if (isLongText(value)) {
                           setState(() {
-                            _textAnalysisSummary = result;
+                            _textAnalysisSummary = null;
                             _isTextLoading = false;
                           });
-                        } catch (e) {
-                          print('分析文本失败: $e');
-                          setState(() {
-                            _isTextLoading = false;
-                          });
+                        } else {
+                          try {
+                            final result = await calculator.analyzeText(value);
+                            setState(() {
+                              _textAnalysisSummary = result;
+                              _isTextLoading = false;
+                            });
+                          } catch (e) {
+                            setState(() {
+                              _isTextLoading = false;
+                            });
+                          }
                         }
                       } else {
                         setState(() {
@@ -414,18 +480,37 @@ class _HomePageState extends State<HomePage>
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (isLongText)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text(
-                          '（长文本仅支持按字数起卦）',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ),
                     const SizedBox(height: 8),
-                    ...availableMethods.map((method) {
+                    ...TextDivinationMethod.values.map((method) {
+                      final isRecommended =
+                          method.isLongTextRecommended ||
+                          method == TextDivinationMethod.byCharCount;
                       return RadioListTile<TextDivinationMethod>(
-                        title: Text(method.displayName),
+                        title: Row(
+                          children: [
+                            Text(method.displayName),
+                            if (isLong && isRecommended) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '推荐',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                         subtitle: Text(
                           method.description,
                           style: const TextStyle(fontSize: 12),
@@ -450,13 +535,16 @@ class _HomePageState extends State<HomePage>
             const Center(child: CircularProgressIndicator()),
           ],
 
-          // 字符分析卡片 - 显示笔画、拼音、平仄
-          if (_textAnalysisSummary != null && !_isTextLoading) ...[
+          // 长文本模式：显示句子分析
+          if (isLong && !_isTextLoading && sentenceAnalysis != null) ...[
             const SizedBox(height: 16),
-            _buildCharacterAnalysisCard(
-              _textAnalysisSummary!,
-              isLongText: isLongText,
-            ),
+            _buildSentenceAnalysisCard(sentenceAnalysis),
+          ],
+
+          // 短文本模式：显示字符分析
+          if (!isLong && _textAnalysisSummary != null && !_isTextLoading) ...[
+            const SizedBox(height: 16),
+            _buildCharacterAnalysisCard(_textAnalysisSummary!),
           ],
 
           // 起卦按钮
@@ -468,7 +556,7 @@ class _HomePageState extends State<HomePage>
                 onPressed: () =>
                     _generateGuaByTextWithMethod(_selectedTextMethod),
                 icon: const Icon(Icons.auto_awesome),
-                label: const Text('起卦'),
+                label: Text(isLong ? '长文本起卦' : '起卦'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
@@ -479,6 +567,78 @@ class _HomePageState extends State<HomePage>
           const SizedBox(height: 24),
           if (_result != null) _buildResultSection(),
         ],
+      ),
+    );
+  }
+
+  /// 构建句子分析卡片
+  Widget _buildSentenceAnalysisCard(Map<String, dynamic> analysis) {
+    final sentenceCount = analysis['sentenceCount'] as int;
+    final charCounts = analysis['charCounts'] as List<int>;
+    final totalChars = analysis['totalChars'] as int;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '句子分析',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '共 $totalChars 字',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text('共 $sentenceCount 句', style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 12),
+            // 显示每句字数
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: List.generate(sentenceCount, (index) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '第${index + 1}句',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${charCounts[index]}字',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
