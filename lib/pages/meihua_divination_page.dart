@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/meihua_service.dart';
-import '../services/stroke_service.dart';
+import '../services/dictionary_stroke_service.dart';
 import '../models/divination_result.dart';
 import '../widgets/gua_display_widget.dart';
 import '../widgets/gua_selector_widget.dart';
@@ -204,14 +204,52 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
 
   /// 文字起卦Tab
   Widget _buildTextTab() {
-    final strokeService = StrokeService();
+    final strokeService = DictionaryStrokeService();
     final textController = TextEditingController();
 
     return StatefulBuilder(
       builder: (context, setLocalState) {
         String inputText = '';
         List<int> strokeCounts = [];
+        List<String> pinyinWithTones = [];
         int totalStrokes = 0;
+        bool isLoading = false;
+
+        Future<void> updateAnalysis(String value) async {
+          if (value.isEmpty) {
+            setLocalState(() {
+              inputText = '';
+              strokeCounts = [];
+              pinyinWithTones = [];
+              totalStrokes = 0;
+              isLoading = false;
+            });
+            return;
+          }
+
+          setLocalState(() {
+            isLoading = true;
+          });
+
+          // 获取笔画数
+          final counts = await strokeService.getStrokeCounts(value);
+          final total = await strokeService.getTotalStrokeCount(value);
+
+          // 获取拼音带声调编号
+          final List<String> pinyins = [];
+          for (var char in value.split('')) {
+            final pinyin = await strokeService.getPinyinWithToneNumber(char);
+            pinyins.add(pinyin ?? char);
+          }
+
+          setLocalState(() {
+            inputText = value;
+            strokeCounts = counts;
+            pinyinWithTones = pinyins;
+            totalStrokes = total;
+            isLoading = false;
+          });
+        }
 
         return Padding(
           padding: const EdgeInsets.all(16.0),
@@ -242,24 +280,17 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
                           border: OutlineInputBorder(),
                         ),
                         onChanged: (value) {
-                          setLocalState(() {
-                            inputText = value;
-                            if (value.isNotEmpty) {
-                              strokeCounts =
-                                  strokeService.getStrokeCounts(value);
-                              totalStrokes =
-                                  strokeService.getTotalStrokeCount(value);
-                            } else {
-                              strokeCounts = [];
-                              totalStrokes = 0;
-                            }
-                          });
+                          updateAnalysis(value);
                         },
                       ),
                       const SizedBox(height: 16),
-                      if (inputText.isNotEmpty) ...[
+                      if (isLoading)
+                        const CircularProgressIndicator()
+                      else if (inputText.isNotEmpty) ...[
+                        // 每个字的详细信息卡片
                         Wrap(
                           spacing: 8,
+                          runSpacing: 8,
                           children:
                               inputText.split('').asMap().entries.map((entry) {
                             final index = entry.key;
@@ -267,23 +298,124 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
                             final strokes = index < strokeCounts.length
                                 ? strokeCounts[index]
                                 : 0;
-                            return Chip(
-                              label: Text('$char ($strokes画)'),
+                            final pinyin = index < pinyinWithTones.length
+                                ? pinyinWithTones[index]
+                                : char;
+
+                            // 判断平仄 (1-2声为平，3-4声为仄)
+                            bool isPing = false;
+                            if (pinyin.isNotEmpty) {
+                              final lastChar = pinyin[pinyin.length - 1];
+                              final tone = int.tryParse(lastChar) ?? 0;
+                              isPing = tone == 1 || tone == 2;
+                            }
+
+                            return Container(
+                              width: 100,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  // 汉字
+                                  Text(
+                                    char,
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // 笔画
+                                  Text(
+                                    '$strokes画',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // 拼音+声调编号
+                                  Text(
+                                    pinyin,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.blue.shade700,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // 平仄标签
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isPing
+                                          ? Colors.blue.shade50
+                                          : Colors.red.shade50,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      isPing ? '平' : '仄',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isPing
+                                            ? Colors.blue.shade700
+                                            : Colors.red.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             );
                           }).toList(),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '总笔画数: $totalStrokes',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        const SizedBox(height: 16),
+                        // 总笔画数
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                '总笔画数: ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                '$totalStrokes',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.deepPurple,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: inputText.isNotEmpty
+                        onPressed: inputText.isNotEmpty && !isLoading
                             ? () {
                                 _generateGuaByText(inputText);
                               }
@@ -370,12 +502,12 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
     });
   }
 
-  void _generateGuaByText(String text) {
+  Future<void> _generateGuaByText(String text) async {
     if (text.isEmpty) return;
 
-    final strokeService = StrokeService();
+    final strokeService = DictionaryStrokeService();
     final service = context.read<MeiHuaService>();
-    final strokeCounts = strokeService.getStrokeCounts(text);
+    final strokeCounts = await strokeService.getStrokeCounts(text);
 
     // 根据笔画数起卦
     setState(() {

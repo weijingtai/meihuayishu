@@ -52,6 +52,8 @@ class _HomePageState extends State<HomePage>
   // 文字起卦状态
   String _inputText = '';
   TextDivinationMethod _selectedTextMethod = TextDivinationMethod.byStroke;
+  TextAnalysisSummary? _textAnalysisSummary;
+  bool _isTextLoading = false;
 
   @override
   void initState() {
@@ -317,174 +319,164 @@ class _HomePageState extends State<HomePage>
   /// 文字起卦Tab
   Widget _buildTextTab() {
     final calculator = TextDivinationCalculator();
+    final isLongText = _inputText.length > 10;
 
-    return StatefulBuilder(
-      builder: (context, setLocalState) {
-        TextAnalysisSummary? summary;
-        bool isLoading = false;
+    // 可用的起卦方法
+    final availableMethods = isLongText
+        ? [TextDivinationMethod.byCharCount]
+        : TextDivinationMethod.values;
 
-        Future<void> loadSummary(String text) async {
-          if (text.isEmpty) {
-            setLocalState(() {
-              summary = null;
-              isLoading = false;
-            });
-            return;
-          }
-
-          setLocalState(() {
-            isLoading = true;
-          });
-
-          final result = await calculator.analyzeText(text);
-
-          setLocalState(() {
-            summary = result;
-            isLoading = false;
-          });
-        }
-
-        final isLongText = _inputText.length > 10;
-
-        // 可用的起卦方法
-        final availableMethods = isLongText
-            ? [TextDivinationMethod.byCharCount]
-            : TextDivinationMethod.values;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Card(
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.text_fields,
-                        size: 48,
-                        color: Colors.deepPurple,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        '文字起卦',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '输入文字，选择起卦方式\n适用于测字、姓名、成语等',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: '输入文字',
-                          hintText: '请输入汉字',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          prefixIcon: const Icon(Icons.edit),
-                        ),
-                        onChanged: (value) {
-                          setState(() => _inputText = value);
-                          loadSummary(value);
-                        },
-                      ),
-                    ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.text_fields,
+                    size: 48,
+                    color: Colors.deepPurple,
                   ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '文字起卦',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '输入文字，选择起卦方式\n适用于测字、姓名、成语等',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: '输入文字',
+                      hintText: '请输入汉字',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.edit),
+                    ),
+                    onChanged: (value) async {
+                      setState(() {
+                        _inputText = value;
+                        _isTextLoading = true;
+                      });
+
+                      if (value.isNotEmpty) {
+                        try {
+                          final result = await calculator.analyzeText(value);
+                          setState(() {
+                            _textAnalysisSummary = result;
+                            _isTextLoading = false;
+                          });
+                        } catch (e) {
+                          print('分析文本失败: $e');
+                          setState(() {
+                            _isTextLoading = false;
+                          });
+                        }
+                      } else {
+                        setState(() {
+                          _textAnalysisSummary = null;
+                          _isTextLoading = false;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 起卦方式选择
+          if (_inputText.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '起卦方式',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (isLongText)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          '（长文本仅支持按字数起卦）',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    ...availableMethods.map((method) {
+                      return RadioListTile<TextDivinationMethod>(
+                        title: Text(method.displayName),
+                        subtitle: Text(
+                          method.description,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        value: method,
+                        groupValue: _selectedTextMethod,
+                        onChanged: (value) {
+                          setState(() => _selectedTextMethod = value!);
+                        },
+                        dense: true,
+                      );
+                    }),
+                  ],
                 ),
               ),
+            ),
+          ],
 
-              // 起卦方式选择
-              if (_inputText.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '起卦方式',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (isLongText)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
-                            child: Text(
-                              '（长文本仅支持按字数起卦）',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        ...availableMethods.map((method) {
-                          return RadioListTile<TextDivinationMethod>(
-                            title: Text(method.displayName),
-                            subtitle: Text(
-                              method.description,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            value: method,
-                            groupValue: _selectedTextMethod,
-                            onChanged: (value) {
-                              setState(() => _selectedTextMethod = value!);
-                            },
-                            dense: true,
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
+          // 加载指示器
+          if (_isTextLoading) ...[
+            const SizedBox(height: 16),
+            const Center(child: CircularProgressIndicator()),
+          ],
+
+          // 字符分析卡片 - 显示笔画、拼音、平仄
+          if (_textAnalysisSummary != null && !_isTextLoading) ...[
+            const SizedBox(height: 16),
+            _buildCharacterAnalysisCard(
+              _textAnalysisSummary!,
+              isLongText: isLongText,
+            ),
+          ],
+
+          // 起卦按钮
+          if (_inputText.isNotEmpty && !_isTextLoading) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () =>
+                    _generateGuaByTextWithMethod(_selectedTextMethod),
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('起卦'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-              ],
+              ),
+            ),
+          ],
 
-              // 加载指示器
-              if (isLoading) ...[
-                const SizedBox(height: 16),
-                const Center(child: CircularProgressIndicator()),
-              ],
-
-              // 字符分析卡片 - 始终显示（长文本只显示前10个字）
-              if (summary != null && !isLoading) ...[
-                const SizedBox(height: 16),
-                _buildCharacterAnalysisCard(summary!, isLongText: isLongText),
-              ],
-
-              // 起卦按钮
-              if (_inputText.isNotEmpty && !isLoading) ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () =>
-                        _generateGuaByTextWithMethod(_selectedTextMethod),
-                    icon: const Icon(Icons.auto_awesome),
-                    label: const Text('起卦'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 24),
-              if (_result != null) _buildResultSection(),
-            ],
-          ),
-        );
-      },
+          const SizedBox(height: 24),
+          if (_result != null) _buildResultSection(),
+        ],
+      ),
     );
   }
 

@@ -3,37 +3,68 @@ import '../models/divination_method.dart';
 import '../models/text_divination_method.dart';
 import '../models/character_analysis.dart';
 import '../models/gua.dart';
-import '../services/stroke_service.dart';
+import '../services/dictionary_stroke_service.dart';
 import '../services/text_tone_service.dart';
 import '../utils/gua_calculator.dart';
 
 /// 文字起卦计算器
 class TextDivinationCalculator {
-  final StrokeService _strokeService = StrokeService();
+  final DictionaryStrokeService _strokeService = DictionaryStrokeService();
   final TextToneService _toneService = TextToneService();
 
   /// 分析文本
-  TextAnalysisSummary analyzeText(String text) {
+  Future<TextAnalysisSummary> analyzeText(String text) async {
+    print('开始分析文本: $text');
     final chars = text.split('');
-    final analyses = chars.map((char) {
-      final stroke = _strokeService.getStrokeCount(char);
-      final pinyinInfo = _toneService.getFullPinyinInfo(char);
+    final strokeCounts = await _strokeService.getStrokeCounts(text);
+    print('获取到笔画数: $strokeCounts');
 
-      return CharacterAnalysis(
+    final analyses = <CharacterAnalysis>[];
+    for (int i = 0; i < chars.length; i++) {
+      final char = chars[i];
+      final stroke = strokeCounts[i];
+
+      // 从数据库获取拼音（带声调标记）和声调编号
+      final dbPinyin = await _strokeService.database.getPinyin(char);
+      final pinyinWithToneNumber =
+          await _strokeService.getPinyinWithToneNumber(char);
+
+      // 解析拼音和声调编号（如 "ni 3" -> pinyin="ni", tone=3）
+      String displayPinyin = dbPinyin ?? char;
+      int tone = 0;
+
+      if (pinyinWithToneNumber != null) {
+        final parts = pinyinWithToneNumber.split(' ');
+        if (parts.length == 2) {
+          tone = int.tryParse(parts[1]) ?? 0;
+        }
+      }
+
+      // 如果没有声调编号，使用 lpinyin 库作为备用
+      if (tone == 0) {
+        final pinyinInfo = _toneService.getFullPinyinInfo(char);
+        displayPinyin = pinyinInfo.pinyinWithTone;
+        tone = pinyinInfo.tone;
+      }
+
+      print('字符: $char, 笔画: $stroke, 拼音: $displayPinyin, 声调: $tone');
+
+      analyses.add(CharacterAnalysis(
         character: char,
-        strokeCount: stroke > 0 ? stroke : 1, // 默认1画
-        modernTone: pinyinInfo.tone > 0 ? pinyinInfo.tone : 1, // 默认1声
-        pinyinWithTone: pinyinInfo.pinyinWithTone,
-        pinyinWithoutTone: pinyinInfo.pinyinWithoutTone,
-        isPing: pinyinInfo.tone == 1 || pinyinInfo.tone == 2,
-      );
-    }).toList();
+        strokeCount: stroke > 0 ? stroke : 1,
+        modernTone: tone > 0 ? tone : 1,
+        pinyinWithTone: displayPinyin,
+        pinyinWithoutTone: _toneService.getPinyinWithoutTone(char),
+        isPing: tone == 1 || tone == 2,
+      ));
+    }
 
+    print('分析完成，共 ${analyses.length} 个字符');
     return TextAnalysisSummary(characters: analyses);
   }
 
   /// 按字数起卦
-  DivinationResult calculateByCharCount(String text) {
+  Future<DivinationResult> calculateByCharCount(String text) async {
     final chars = text.split('');
     final charCount = chars.length;
 
@@ -60,8 +91,8 @@ class TextDivinationCalculator {
   }
 
   /// 按笔画起卦
-  DivinationResult calculateByStroke(String text) {
-    final summary = analyzeText(text);
+  Future<DivinationResult> calculateByStroke(String text) async {
+    final summary = await analyzeText(text);
     final charCount = summary.charCount;
 
     int upperValue, lowerValue;
@@ -92,8 +123,8 @@ class TextDivinationCalculator {
   }
 
   /// 按现代四声起卦
-  DivinationResult calculateByModernTone(String text) {
-    final summary = analyzeText(text);
+  Future<DivinationResult> calculateByModernTone(String text) async {
+    final summary = await analyzeText(text);
 
     final upperValue = summary.firstHalfTones;
     final lowerValue = summary.secondHalfTones;
@@ -107,8 +138,8 @@ class TextDivinationCalculator {
   }
 
   /// 按古代平仄起卦
-  DivinationResult calculateByAncientTone(String text) {
-    final summary = analyzeText(text);
+  Future<DivinationResult> calculateByAncientTone(String text) async {
+    final summary = await analyzeText(text);
 
     final upperValue = summary.firstHalfPingZe;
     final lowerValue = summary.secondHalfPingZe;
@@ -122,16 +153,17 @@ class TextDivinationCalculator {
   }
 
   /// 根据方法起卦
-  DivinationResult calculate(String text, TextDivinationMethod method) {
+  Future<DivinationResult> calculate(
+      String text, TextDivinationMethod method) async {
     switch (method) {
       case TextDivinationMethod.byCharCount:
-        return calculateByCharCount(text);
+        return await calculateByCharCount(text);
       case TextDivinationMethod.byStroke:
-        return calculateByStroke(text);
+        return await calculateByStroke(text);
       case TextDivinationMethod.byModernTone:
-        return calculateByModernTone(text);
+        return await calculateByModernTone(text);
       case TextDivinationMethod.byAncientTone:
-        return calculateByAncientTone(text);
+        return await calculateByAncientTone(text);
     }
   }
 

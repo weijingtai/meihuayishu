@@ -22,6 +22,11 @@ dependencies:
   flutter_screenutil: ^5.9.3
   flutter_sliding_toast: ^1.5.3
   lpinyin: ^2.0.3
+  drift: ^2.24.0
+  drift_flutter: ^0.2.8
+  path_provider: ^2.1.0
+  path: ^1.8.3
+  sqlite3: ^2.9.4
   common:
     path: ../xuan-common
   persistence_core:
@@ -46,6 +51,7 @@ flutter:
   assets:
     - assets/images/
     - assets/data/
+    - assets/sql/
   
   module:
     androidX: true
