@@ -248,7 +248,11 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
 
         // 计算非标点符号的文字数量
         int countNonPunctuation(String text) {
-          final punctuationPattern = RegExp(r'[\p{P}\p{S}\s]', unicode: true);
+          // 中英文标点符号
+          const punctuationChars = '。！？，、；：""'
+              '（）【】《》…—·～'
+              '.,!?;:\'\"()[]{}<>@#\$%^&*_-+=|\\\\/~`\s';
+          final punctuationPattern = RegExp('[$punctuationChars]');
           return text.replaceAll(punctuationPattern, '').length;
         }
 
