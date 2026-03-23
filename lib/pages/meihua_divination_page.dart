@@ -27,6 +27,11 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
   // 报数起卦状态
   String _inputNumber = '';
 
+  // 文字起卦状态
+  String _inputText = '';
+  // 用户修改的音调映射 (字符 -> 音调 1-4)
+  Map<String, int> _toneOverrides = {};
+
   @override
   void initState() {
     super.initState();
@@ -249,6 +254,11 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
             totalStrokes = total;
             isLoading = false;
           });
+
+          // 重置音调修改
+          setState(() {
+            _toneOverrides = {};
+          });
         }
 
         return Padding(
@@ -302,13 +312,14 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
                                 ? pinyinWithTones[index]
                                 : char;
 
+                            // 获取用户修改后的音调
+                            final originalTone = pinyin.isNotEmpty
+                                ? (int.tryParse(pinyin[pinyin.length - 1]) ?? 0)
+                                : 0;
+                            final currentTone =
+                                _toneOverrides[char] ?? originalTone;
                             // 判断平仄 (1-2声为平，3-4声为仄)
-                            bool isPing = false;
-                            if (pinyin.isNotEmpty) {
-                              final lastChar = pinyin[pinyin.length - 1];
-                              final tone = int.tryParse(lastChar) ?? 0;
-                              isPing = tone == 1 || tone == 2;
-                            }
+                            final isPing = currentTone == 1 || currentTone == 2;
 
                             return Container(
                               width: 100,
@@ -345,14 +356,56 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  // 拼音+声调编号
-                                  Text(
-                                    pinyin,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.blue.shade700,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                  // 拼音和音调在同一行
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        pinyin.isNotEmpty
+                                            ? pinyin.substring(
+                                                0,
+                                                pinyin.length -
+                                                    (originalTone > 0 ? 1 : 0))
+                                            : char,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.blue.shade700,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      // 可点击的音调按钮
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            // 音调在 1-4 之间循环
+                                            _toneOverrides[char] =
+                                                (currentTone % 4) + 1;
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.shade50,
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                            border: Border.all(
+                                                color: Colors.blue.shade200),
+                                          ),
+                                          child: Text(
+                                            '$currentTone',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.blue.shade700,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 4),
                                   // 平仄标签
