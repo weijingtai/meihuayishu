@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lunar/lunar.dart';
+import 'package:common/widgets/jie_qi_rise_set_card.dart';
+import 'package:common/enums/enum_twenty_four_jie_qi.dart';
 
 import '../services/meihua_service.dart';
 import '../services/dictionary_stroke_service.dart';
 import '../services/text_divination_calculator.dart';
+import '../services/four_zhu_service.dart';
+import '../services/jie_qi_service.dart';
 import '../models/divination_result.dart';
 import '../models/text_divination_method.dart';
 import '../models/yao_color_mode.dart';
@@ -53,6 +57,11 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
   TextAnalysisSummary? _textAnalysisSummary;
   // 是否正在加载分析结果
   bool _isTextLoading = false;
+  // 卜问输入
+  final TextEditingController _questionController = TextEditingController();
+  final TextEditingController _detailController = TextEditingController();
+  String? _question;
+  bool _isQuestionExpanded = false;
 
   @override
   void initState() {
@@ -110,6 +119,121 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
     );
   }
 
+  /// 构建卜问输入卡片
+  Widget _buildQuestionInputCard() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.help_outline, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  '卜问内容',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _questionController,
+              maxLength: 24,
+              decoration: InputDecoration(
+                labelText: '占测问题',
+                hintText: '请输入您要占测的问题（0-24字）',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixIcon: _questionController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            _questionController.clear();
+                            _question = null;
+                          });
+                        },
+                      )
+                    : null,
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _question = value.isNotEmpty ? value : null;
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            // 展开/折叠按钮
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isQuestionExpanded = !_isQuestionExpanded;
+                    });
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _isQuestionExpanded
+                              ? Icons.expand_less
+                              : Icons.expand_more,
+                          size: 16,
+                          color: Colors.blue.shade700,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _isQuestionExpanded ? '收起' : '添加详细描述',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // 详细描述输入框
+            if (_isQuestionExpanded) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _detailController,
+                maxLength: 240,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  labelText: '详细描述（可选）',
+                  hintText: '请输入详细描述（0-240字）',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 时空起卦Tab
   Widget _buildTimeTab() {
     final now = DateTime.now();
@@ -152,6 +276,9 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // 卜问输入区域
+              _buildQuestionInputCard(),
+              const SizedBox(height: 16),
               // 当前时间起卦
               Card(
                 elevation: 4,
@@ -1182,91 +1309,295 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
     final changedGua = _result!.changedGua;
     final huGua = _result!.huGua;
 
-    return Card(
-      elevation: 4,
-      color: Colors.deepPurple.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      children: [
+        // 四柱信息卡片
+        _buildFourZhuCard(),
+        const SizedBox(height: 16),
+        // 物候信息卡片
+        _buildJieQiCard(),
+        const SizedBox(height: 16),
+        // 卦象结果卡片
+        Card(
+          elevation: 4,
+          color: Colors.deepPurple.shade50,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
               children: [
-                const Text('卦象结果',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple)),
-                _buildColorModeSwitcher(),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildGuaColumn('本卦', gua, showChangingIndicator: true),
-                if (huGua != null)
-                  _buildGuaColumn('互卦', huGua, showChangingIndicator: false),
-                _buildGuaColumn('变卦', changedGua, showChangingIndicator: false),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                  color: Colors.white, borderRadius: BorderRadius.circular(8)),
-              child: Column(
-                children: [
-                  _buildInfoRow('起卦方式', _result!.method.displayName),
-                  _buildInfoRow('动爻位置', '第${gua.changingYao}爻'),
-                  _buildInfoRow('本卦', '${gua.upperGuaName}${gua.lowerGuaName}'),
-                  _buildInfoRow('变卦',
-                      '${changedGua.upperGuaName}${changedGua.lowerGuaName}'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            // 起卦流程按钮
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _showFlow = !_showFlow;
-                });
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _showFlow
-                      ? Colors.deepPurple.shade100
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color:
-                          _showFlow ? Colors.deepPurple : Colors.grey.shade300),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(_showFlow ? Icons.expand_less : Icons.expand_more,
-                        size: 18,
-                        color: _showFlow
-                            ? Colors.deepPurple
-                            : Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text('显示起卦流程',
+                    const Text('卦象结果',
                         style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple)),
+                    _buildColorModeSwitcher(),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildGuaColumn('本卦', gua, showChangingIndicator: true),
+                    if (huGua != null)
+                      _buildGuaColumn('互卦', huGua,
+                          showChangingIndicator: false),
+                    _buildGuaColumn('变卦', changedGua,
+                        showChangingIndicator: false),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Column(
+                    children: [
+                      _buildInfoRow('起卦方式', _result!.method.displayName),
+                      _buildInfoRow('动爻位置', '第${gua.changingYao}爻'),
+                      _buildInfoRow(
+                          '本卦', '${gua.upperGuaName}${gua.lowerGuaName}'),
+                      _buildInfoRow('变卦',
+                          '${changedGua.upperGuaName}${changedGua.lowerGuaName}'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // 起卦流程按钮
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _showFlow = !_showFlow;
+                    });
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _showFlow
+                          ? Colors.deepPurple.shade100
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: _showFlow
+                              ? Colors.deepPurple
+                              : Colors.grey.shade300),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_showFlow ? Icons.expand_less : Icons.expand_more,
+                            size: 18,
                             color: _showFlow
                                 ? Colors.deepPurple
-                                : Colors.grey.shade600)),
-                  ],
+                                : Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Text('显示起卦流程',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: _showFlow
+                                    ? Colors.deepPurple
+                                    : Colors.grey.shade600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // 起卦流程展示
+        if (_showFlow) _buildFlowSection(),
+        const SizedBox(height: 16),
+        // 保存按钮
+        ElevatedButton.icon(
+          onPressed: _saveDivination,
+          icon: const Icon(Icons.save),
+          label: const Text('保存起卦记录'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 保存起卦记录
+  Future<void> _saveDivination() async {
+    if (_result == null) return;
+
+    try {
+      final recordService = context.read<DivinationRecordService>();
+      final uuid = await recordService.saveDivination(
+        result: _result!,
+        question: _question,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('保存成功: $uuid'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('保存失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 构建四柱信息卡片
+  Widget _buildFourZhuCard() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.calendar_today, color: Colors.orange.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  '四柱信息',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // 四柱占位
+            Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Center(
+                child: Text(
+                  '四柱卡片（待集成）',
+                  style: TextStyle(color: Colors.grey),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// 构建物候信息卡片
+  Widget _buildJieQiCard() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.wb_sunny, color: Colors.green.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  '物候信息',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // 物候占位
+            Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Center(
+                child: Text(
+                  '物候卡片（待集成）',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建起卦流程展示区域
+  Widget _buildFlowSection() {
+    if (_result == null) return const SizedBox.shrink();
+
+    final gua = _result!.originalGua;
+    final method = _result!.method;
+    final params = _result!.params;
+
+    // 根据起卦方法生成流程
+    Widget flowWidget;
+    switch (method) {
+      case DivinationMethod.time:
+        flowWidget = DivinationFlowFactory.timeDivinationFlow(
+          yearZhiNum: params?['yearZhiNum'] ?? 1,
+          lunarMonth: params?['lunarMonth'] ?? 1,
+          lunarDay: params?['lunarDay'] ?? 1,
+          hourZhiNum: params?['hourZhiNum'] ?? 1,
+          upperGuaNum: gua.upperNumber,
+          lowerGuaNum: gua.lowerNumber,
+          changingYao: gua.changingYao,
+        );
+        break;
+      case DivinationMethod.number:
+        final numbers = (params?['numbers'] as List?)?.cast<int>() ?? [1];
+        flowWidget = DivinationFlowFactory.numberDivinationFlow(
+          numbers: numbers,
+          upperGuaNum: gua.upperNumber,
+          lowerGuaNum: gua.lowerNumber,
+          changingYao: gua.changingYao,
+        );
+        break;
+      case DivinationMethod.manual:
+        flowWidget = DivinationFlowFactory.manualFlow(
+          upperGuaNum: gua.upperNumber,
+          lowerGuaNum: gua.lowerNumber,
+          changingYao: gua.changingYao,
+        );
+        break;
+      default:
+        // 文字起卦或其他方法
+        flowWidget = DivinationFlowFactory.charCountFlow(
+          text: _inputText.isNotEmpty ? _inputText : '示例文字',
+          charCount: _inputText.isNotEmpty ? _inputText.length : 4,
+          upperGuaNum: gua.upperNumber,
+          lowerGuaNum: gua.lowerNumber,
+          changingYao: gua.changingYao,
+        );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: flowWidget,
     );
   }
 
