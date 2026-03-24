@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:common/widgets/four_zhu_eight_chars_card.dart';
 import 'package:common/widgets/jie_qi_rise_set_card.dart';
+import 'package:common/models/eight_chars.dart';
+import 'package:common/features/tai_yuan/tai_yuan_model.dart';
+import 'package:common/enums/enum_twenty_four_jie_qi.dart';
 import 'package:common/themes/editable_four_zhu_card_theme.dart';
 
 import '../models/divination_result.dart';
 import '../services/divination_record_service.dart';
+import '../services/four_zhu_service.dart';
+import '../services/jie_qi_service.dart';
 import '../widgets/gua_display_widget.dart';
-import '../widgets/four_zhu_card_wrapper.dart';
 
 /// 起卦结果展示页面
 /// 包含四柱卡片 + 物候信息 + 卦象展示 + 可隐藏的起卦算法
@@ -34,6 +39,45 @@ class DivinationResultPage extends StatefulWidget {
 class _DivinationResultPageState extends State<DivinationResultPage> {
   bool _showAlgorithm = false;
   bool _isSaving = false;
+
+  // 四柱和物候计算结果
+  EightChars? _eightChars;
+  TaiYuanModel? _taiYuan;
+  TwentyFourJieQi? _jieQi;
+  DateTime? _jieQiDate;
+  bool _isLoading = true;
+
+  // 默认位置（上海）
+  static const double _defaultLongitude = 121.47;
+  static const double _defaultLatitude = 31.23;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateFourZhuAndJieQi();
+  }
+
+  /// 计算四柱和物候信息
+  Future<void> _calculateFourZhuAndJieQi() async {
+    final fourZhuService = FourZhuService();
+    final jieQiService = JieQiService();
+
+    // 计算四柱
+    final fourZhuResult = await fourZhuService.calculateFourZhu(widget.result.timestamp);
+
+    // 计算物候
+    final jieQiResult = await jieQiService.calculateJieQi(widget.result.timestamp);
+
+    if (mounted) {
+      setState(() {
+        _eightChars = fourZhuResult?.eightChars;
+        _taiYuan = fourZhuResult?.taiYuan;
+        _jieQi = jieQiResult?.jieQiInfo.jieQi;
+        _jieQiDate = widget.result.timestamp;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,8 +170,6 @@ class _DivinationResultPageState extends State<DivinationResultPage> {
 
   /// 构建四柱卡片区域
   Widget _buildFourZhuSection() {
-    // TODO: 集成四柱卡片
-    // 需要从起卦时间计算四柱数据
     return Card(
       elevation: 2,
       child: Padding(
@@ -149,21 +191,38 @@ class _DivinationResultPageState extends State<DivinationResultPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            // 四柱卡片占位
-            Container(
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text(
-                  '四柱卡片（待集成）',
-                  style: TextStyle(color: Colors.grey),
+            const SizedBox(height: 12),
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (_eightChars != null)
+              FourZhuEightCharsCard(
+                eightChars: _eightChars!,
+                taiYuan: _taiYuan ?? TaiYuanModel(taiYuanGanZhi: _eightChars!.year),
+                showTaiYuan: true,
+                showXunShou: true,
+                showNaYin: true,
+                showKongWang: true,
+                showKe: false,
+              )
+            else
+              Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Text(
+                    '四柱计算失败',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -172,7 +231,6 @@ class _DivinationResultPageState extends State<DivinationResultPage> {
 
   /// 构建物候信息区域
   Widget _buildJieQiSection() {
-    // TODO: 集成物候信息卡片
     return Card(
       elevation: 2,
       child: Padding(
@@ -194,21 +252,37 @@ class _DivinationResultPageState extends State<DivinationResultPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            // 物候信息卡片占位
-            Container(
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text(
-                  '物候信息卡片（待集成）',
-                  style: TextStyle(color: Colors.grey),
+            const SizedBox(height: 12),
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (_jieQi != null && _jieQiDate != null)
+              JieQiRiseSetCard(
+                jieQi: _jieQi!,
+                jieQiDate: _jieQiDate!,
+                longitude: _defaultLongitude,
+                latitude: _defaultLatitude,
+                timezone: 'Asia/Shanghai',
+                isCompact: false,
+              )
+            else
+              Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Text(
+                    '物候计算失败',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

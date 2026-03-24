@@ -7,6 +7,8 @@ import 'pages/meihua_divination_page.dart';
 import 'services/meihua_service.dart';
 import 'database/meihua_database.dart';
 import 'services/divination_record_service.dart';
+import 'services/four_zhu_service.dart';
+import 'services/jie_qi_service.dart';
 
 // 导出模型
 export 'models/yao_color_mode.dart';
@@ -33,6 +35,8 @@ export 'widgets/four_zhu_card_wrapper.dart';
 export 'services/meihua_service.dart';
 export 'services/text_divination_calculator.dart';
 export 'services/divination_record_service.dart';
+export 'services/four_zhu_service.dart';
+export 'services/jie_qi_service.dart';
 
 // 导出工具
 export 'utils/pinyin_tone_converter.dart';
@@ -71,6 +75,16 @@ class MeiHuaYiShuModule {
     return DivinationRecordService(database);
   }
 
+  /// 获取四柱计算服务
+  static FourZhuService get fourZhuService {
+    return FourZhuService();
+  }
+
+  /// 获取物候计算服务
+  static JieQiService get jieQiService {
+    return JieQiService();
+  }
+
   static Future<void> init() async {
     _logger.i("Mei Hua Yi Shu module initialized");
     // 初始化数据库
@@ -83,6 +97,8 @@ class MeiHuaYiShuModule {
         Provider<MeiHuaService>(create: (_) => MeiHuaService()),
         Provider<MeiHuaDatabase>(create: (_) => database),
         Provider<DivinationRecordService>(create: (_) => recordService),
+        Provider<FourZhuService>(create: (_) => fourZhuService),
+        Provider<JieQiService>(create: (_) => jieQiService),
       ],
       child: const MeiHuaDivinationPage(),
     );
