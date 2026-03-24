@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:common/widgets/four_zhu_eight_chars_card.dart';
 import 'package:common/widgets/jie_qi_rise_set_card.dart';
-import 'package:common/models/eight_chars.dart';
-import 'package:common/features/tai_yuan/tai_yuan_model.dart';
 import 'package:common/enums/enum_twenty_four_jie_qi.dart';
-import 'package:common/themes/editable_four_zhu_card_theme.dart';
 
 import '../models/divination_result.dart';
 import '../services/divination_record_service.dart';
@@ -22,14 +18,10 @@ class DivinationResultPage extends StatefulWidget {
   /// 卜问内容
   final String? question;
 
-  /// 预留四柱主题接口
-  final ValueNotifier<EditableFourZhuCardTheme>? fourZhuThemeNotifier;
-
   const DivinationResultPage({
     super.key,
     required this.result,
     this.question,
-    this.fourZhuThemeNotifier,
   });
 
   @override
@@ -37,12 +29,12 @@ class DivinationResultPage extends StatefulWidget {
 }
 
 class _DivinationResultPageState extends State<DivinationResultPage> {
-  bool _showAlgorithm = false;
   bool _isSaving = false;
 
   // 四柱和物候计算结果
-  EightChars? _eightChars;
-  TaiYuanModel? _taiYuan;
+  String? _fourZhuString;
+  String? _tianGanString;
+  String? _diZhiString;
   TwentyFourJieQi? _jieQi;
   DateTime? _jieQiDate;
   bool _isLoading = true;
@@ -70,8 +62,11 @@ class _DivinationResultPageState extends State<DivinationResultPage> {
 
     if (mounted) {
       setState(() {
-        _eightChars = fourZhuResult?.eightChars;
-        _taiYuan = fourZhuResult?.taiYuan;
+        if (fourZhuResult != null) {
+          _fourZhuString = fourZhuService.getFourZhuString(fourZhuResult.eightChars);
+          _tianGanString = fourZhuService.getTianGanString(fourZhuResult.eightChars);
+          _diZhiString = fourZhuService.getDiZhiString(fourZhuResult.eightChars);
+        }
         _jieQi = jieQiResult?.jieQiInfo.jieQi;
         _jieQiDate = widget.result.timestamp;
         _isLoading = false;
@@ -199,15 +194,58 @@ class _DivinationResultPageState extends State<DivinationResultPage> {
                   child: CircularProgressIndicator(),
                 ),
               )
-            else if (_eightChars != null)
-              FourZhuEightCharsCard(
-                eightChars: _eightChars!,
-                taiYuan: _taiYuan ?? TaiYuanModel(taiYuanGanZhi: _eightChars!.year),
-                showTaiYuan: true,
-                showXunShou: true,
-                showNaYin: true,
-                showKongWang: true,
-                showKe: false,
+            else if (_fourZhuString != null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    // 四柱完整显示
+                    Text(
+                      _fourZhuString!,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // 天干
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('天干: ', style: TextStyle(fontSize: 14)),
+                        Text(
+                          _tianGanString ?? '',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // 地支
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('地支: ', style: TextStyle(fontSize: 14)),
+                        Text(
+                          _diZhiString ?? '',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               )
             else
               Container(

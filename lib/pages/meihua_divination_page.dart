@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:common/viewmodels/dev_enter_page_view_model.dart';
-import 'package:common/widgets/divination_question_widget.dart';
 
 import '../services/meihua_service.dart';
 import '../services/dictionary_stroke_service.dart';
@@ -28,9 +26,12 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
   DivinationResult? _result;
   late TabController _tabController;
 
-  // 卜问输入 ViewModel
-  late DevEnterPageViewModel _enterPageViewModel;
-  final ValueNotifier<bool> _isExpandedNotifier = ValueNotifier<bool>(false);
+  // 卜问输入
+  final TextEditingController _questionController = TextEditingController();
+  final TextEditingController _detailController = TextEditingController();
+  String? _question;
+  String? _detail;
+  bool _isExpanded = false;
 
   // 手动起卦状态
   int? _selectedUpperGua;
@@ -53,7 +54,6 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _enterPageViewModel = DevEnterPageViewModel();
     _loadLongTextThreshold();
   }
 
@@ -74,14 +74,13 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
   @override
   void dispose() {
     _tabController.dispose();
-    _isExpandedNotifier.dispose();
+    _questionController.dispose();
+    _detailController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('梅花易数'),
@@ -107,38 +106,7 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 卜问输入区域
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.help_outline,
-                            color: Colors.blue.shade700),
-                        const SizedBox(width: 8),
-                        Text(
-                          '卜问内容',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    DivinationQuestionWidget(
-                      width: screenWidth - 64,
-                      isExpandedNotifier: _isExpandedNotifier,
-                      enterPageViewModel: _enterPageViewModel,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildQuestionInput(),
 
             const SizedBox(height: 16),
 
@@ -190,6 +158,123 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
     );
   }
 
+  /// 构建卜问输入区域
+  Widget _buildQuestionInput() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.help_outline, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  '卜问内容',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _questionController,
+              maxLength: 24,
+              decoration: InputDecoration(
+                labelText: '占测问题',
+                hintText: '请输入您要占测的问题（0-24字）',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixIcon: _questionController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            _questionController.clear();
+                            _question = null;
+                          });
+                        },
+                      )
+                    : null,
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _question = value.isNotEmpty ? value : null;
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            // 展开/折叠按钮
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isExpanded = !_isExpanded;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _isExpanded ? Icons.expand_less : Icons.expand_more,
+                          size: 16,
+                          color: Colors.blue.shade700,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _isExpanded ? '收起' : '添加详细描述',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // 详细描述输入框
+            if (_isExpanded) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _detailController,
+                maxLength: 240,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  labelText: '详细描述（可选）',
+                  hintText: '请输入详细描述（0-240字）',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _detail = value.isNotEmpty ? value : null;
+                  });
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 导航到结果页面
   void _navigateToResultPage() {
     if (_result == null) return;
@@ -199,7 +284,7 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
       MaterialPageRoute(
         builder: (context) => DivinationResultPage(
           result: _result!,
-          question: _enterPageViewModel.question.value,
+          question: _question,
         ),
       ),
     );

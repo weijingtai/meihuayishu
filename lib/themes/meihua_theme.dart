@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:common/themes/gan_zhi_gua_colors.dart';
+import 'package:common/app_colors.dart';
 
 /// 梅花易数中国风主题
 class MeiHuaTheme {
-  // 使用 common 中的中国风颜色
-  static Color get primaryColor => GanZhiGuaColors.light.surfaceColor;
-  static Color get backgroundColor => GanZhiGuaColors.light.backgroundColor;
-  static Color get surfaceColor => GanZhiGuaColors.light.surfaceColor;
-  static Color get textColor => GanZhiGuaColors.light.textColor;
-  static Color get secondaryTextColor => GanZhiGuaColors.light.secondaryTextColor;
+  // 使用 common 中的颜色
+  static Color get primaryColor => const Color(0xFF2A9D8F);
+  static Color get backgroundColor => AppColors.backgroundLight;
+  static Color get surfaceColor => Colors.white;
+  static Color get textColor => AppColors.textPrimaryLight;
+  static Color get secondaryTextColor => AppColors.textSecondaryLight;
 
   // 中国传统色
   static const Color paperWhite = Color(0xFFF7F5F0);      // 宣纸白
@@ -41,11 +41,11 @@ class MeiHuaTheme {
           color: inkBlack,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: const CardThemeData(
         color: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -78,31 +78,35 @@ class MeiHuaTheme {
 
   /// 获取暗色主题
   static ThemeData get darkTheme {
+    const darkSurface = Color(0xFF2A2A2A);
+    const darkBackground = Color(0xFF1A1A1A);
+    const darkText = Color(0xFFEFEFEF);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.dark(
+      colorScheme: const ColorScheme.dark(
         primary: jadeGreen,
         secondary: cinnabarRed,
-        surface: GanZhiGuaColors.dark.surfaceColor,
-        onSurface: GanZhiGuaColors.dark.textColor,
+        surface: darkSurface,
+        onSurface: darkText,
       ),
-      scaffoldBackgroundColor: GanZhiGuaColors.dark.backgroundColor,
+      scaffoldBackgroundColor: darkBackground,
       appBarTheme: AppBarTheme(
-        backgroundColor: GanZhiGuaColors.dark.surfaceColor,
-        foregroundColor: GanZhiGuaColors.dark.textColor,
+        backgroundColor: darkSurface,
+        foregroundColor: darkText,
         elevation: 0,
         titleTextStyle: GoogleFonts.notoSansSc(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: GanZhiGuaColors.dark.textColor,
+          color: darkText,
         ),
       ),
-      cardTheme: CardTheme(
-        color: GanZhiGuaColors.dark.surfaceColor,
+      cardTheme: const CardThemeData(
+        color: darkSurface,
         elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -120,7 +124,7 @@ class MeiHuaTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: GanZhiGuaColors.dark.textColor,
+          foregroundColor: darkText,
           textStyle: GoogleFonts.notoSansSc(
             fontSize: 16,
           ),
