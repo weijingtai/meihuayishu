@@ -23,6 +23,7 @@ export 'models/gua.dart';
 export 'pages/theme_edit_page.dart';
 export 'pages/divination_result_page.dart';
 export 'pages/meihua_history_page.dart';
+export 'pages/home_page.dart';
 
 // 导出组件
 export 'widgets/settings_button.dart';
