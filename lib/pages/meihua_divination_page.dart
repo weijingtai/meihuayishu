@@ -1412,6 +1412,9 @@ class _MeiHuaDivinationPageState extends State<MeiHuaDivinationPage>
         // 起卦流程展示
         if (_showFlow) _buildFlowSection(),
         const SizedBox(height: 16),
+        // 易经解析区域
+        GuaDisplayWidget(result: _result!),
+        const SizedBox(height: 16),
         // 保存按钮
         ElevatedButton.icon(
           onPressed: _saveDivination,

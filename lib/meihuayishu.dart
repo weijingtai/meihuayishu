@@ -31,6 +31,9 @@ export 'widgets/gua_selector_widget.dart';
 export 'widgets/yao_selector_widget.dart';
 export 'widgets/divination_flow_display.dart';
 export 'widgets/four_zhu_card_wrapper.dart';
+export 'widgets/gua_ci_card_widget.dart';
+export 'widgets/yao_ci_list_widget.dart';
+export 'widgets/gua_display_widget.dart';
 
 // 导出服务
 export 'services/meihua_service.dart';
@@ -38,6 +41,7 @@ export 'services/text_divination_calculator.dart';
 export 'services/divination_record_service.dart';
 export 'services/four_zhu_service.dart';
 export 'services/jie_qi_service.dart';
+export 'services/yijing_data_service.dart';
 
 // 导出工具
 export 'utils/pinyin_tone_converter.dart';

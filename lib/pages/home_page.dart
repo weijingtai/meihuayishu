@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../meihuayishu.dart';
 import '../services/meihua_service.dart';
 import '../database/meihua_database.dart';
 import '../services/divination_record_service.dart';
@@ -35,8 +36,7 @@ class _HomePageState extends State<HomePage> {
         title: const Text('梅花易数'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          if (widget.showSystemSwitch)
-            _buildSystemSwitch(),
+          if (widget.showSystemSwitch) _buildSystemSwitch(),
         ],
       ),
       body: _buildBody(),
@@ -116,9 +116,10 @@ class _HomePageState extends State<HomePage> {
         MultiProvider(
           providers: [
             Provider<MeiHuaService>(create: (_) => MeiHuaService()),
-            Provider<MeiHuaDatabase>(create: (_) => MeiHuaDatabase()),
+            Provider<MeiHuaDatabase>(create: (_) => MeiHuaYiShuModule.database),
             Provider<DivinationRecordService>(
-              create: (ctx) => DivinationRecordService(ctx.read<MeiHuaDatabase>()),
+              create: (ctx) =>
+                  DivinationRecordService(ctx.read<MeiHuaDatabase>()),
             ),
             Provider<FourZhuService>(create: (_) => FourZhuService()),
             Provider<JieQiService>(create: (_) => JieQiService()),
@@ -128,9 +129,10 @@ class _HomePageState extends State<HomePage> {
         // 历史记录页面
         MultiProvider(
           providers: [
-            Provider<MeiHuaDatabase>(create: (_) => MeiHuaDatabase()),
+            Provider<MeiHuaDatabase>(create: (_) => MeiHuaYiShuModule.database),
             Provider<DivinationRecordService>(
-              create: (ctx) => DivinationRecordService(ctx.read<MeiHuaDatabase>()),
+              create: (ctx) =>
+                  DivinationRecordService(ctx.read<MeiHuaDatabase>()),
             ),
           ],
           child: const MeiHuaHistoryPage(),
